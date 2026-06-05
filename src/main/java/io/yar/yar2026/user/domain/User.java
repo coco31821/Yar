@@ -27,6 +27,7 @@ public class User extends BaseEntity {
 
     private String nickname;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
 
@@ -49,5 +50,9 @@ public class User extends BaseEntity {
         this.provider = "LOCAL";
         this.status = "ACTIVE";
         this.lastLoginAt = null;
+    }
+
+    public void updateLastLoginAt() {
+        this.lastLoginAt = LocalDateTime.now();
     }
 }

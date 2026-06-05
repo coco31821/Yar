@@ -9,5 +9,14 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: create
     show-sql: true
+
+custom:
+  jwt:
+    validations:
+      access: 900000
+      refresh: 1209600000
+    secrets:
+      app-key: AB7386E09AEF770B37CEABF9793CF82B51B8C0F0D5FD940CFEE706B3E9DB5FA114606C93189B66C61EACE2750EB5CAB0EF03A5325F7C737E8132546E1368F5B6
+      origin-key: 019e4de3-2263-7d7e-bf31-f191b72718ae-019e4de3-2263-7dcf-8b1d-a8b3e4094cb9

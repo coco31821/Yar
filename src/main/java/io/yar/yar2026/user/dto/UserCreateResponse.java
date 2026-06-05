@@ -17,6 +17,7 @@ public record UserCreateResponse(
         String createdAt,
         String lastLoginAt
 ) {
+
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
