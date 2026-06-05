@@ -51,4 +51,8 @@ public class User extends BaseEntity {
         this.status = "ACTIVE";
         this.lastLoginAt = null;
     }
+
+    public void updateLastLoginAt() {
+        this.lastLoginAt = LocalDateTime.now();
+    }
 }

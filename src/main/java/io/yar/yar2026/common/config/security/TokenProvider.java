@@ -92,5 +92,8 @@ public class TokenProvider {
         return jwtProperties.getValidations().getAccess() / 1000;
     }
 
+    public long getRefreshTokenExpirationSeconds() {
+        return jwtProperties.getValidations().getRefresh() / 1000;
+    }
 
 }
