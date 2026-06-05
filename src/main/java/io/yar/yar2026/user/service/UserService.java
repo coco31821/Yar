@@ -33,13 +33,6 @@ public class UserService {
     @Transactional
     public UserCreateResponse signup(SignupRequest request) {
 
-        String email = request.email().trim();
-
-        System.out.println("===== 회원가입 요청 =====");
-        System.out.println("요청 email = [" + email + "]");
-        System.out.println("중복 여부 = " + userRepository.existsByEmail(email));
-
-
         if (userRepository.existsByEmail(request.email())) {
             throw new DuplicateEmailException();
         }
