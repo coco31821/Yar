@@ -1,10 +1,8 @@
 package io.yar.yar2026.user.service;
 
+import io.yar.yar2026.common.config.security.TokenProvider;
 import io.yar.yar2026.user.domain.User;
-import io.yar.yar2026.user.dto.LoginRequest;
-import io.yar.yar2026.user.dto.LoginResponse;
-import io.yar.yar2026.user.dto.SignupRequest;
-import io.yar.yar2026.user.dto.UserCreateResponse;
+import io.yar.yar2026.user.dto.*;
 import io.yar.yar2026.user.exception.DuplicateEmailException;
 import io.yar.yar2026.user.exception.LoginFailedException;
 import io.yar.yar2026.user.repository.UserRepository;
@@ -23,6 +21,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TokenProvider tokenProvider;
+
 
     // 회원가입
     @Transactional
@@ -61,13 +61,15 @@ public class UserService {
             throw new LoginFailedException();
         }
 
-        String accessToken = UUID.randomUUID().toString();
-        String refreshToken = UUID.randomUUID().toString();
+        TokenPair tokenPair = tokenProvider.issueTokenPair(
+                user.getUserId(),
+                user.getRole()
+        );
 
         return new LoginResponse(
-                accessToken,
-                refreshToken,
-                900L
+                tokenPair.accessToken(),
+                tokenPair.refreshToken(),
+                tokenProvider.getAccessTokenExpirationSeconds()
         );
 
 
