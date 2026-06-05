@@ -2,6 +2,7 @@ package io.yar.yar2026.common.eventhandler;
 
 import io.yar.yar2026.common.dto.ApiResponse;
 import io.yar.yar2026.user.exception.DuplicateEmailException;
+import io.yar.yar2026.user.exception.LoginFailedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -34,10 +35,23 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(message));
     }
 
+    // 로그인 실패
+    @ExceptionHandler(LoginFailedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleLoginFailedException(
+            LoginFailedException e
+    ){
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.fail(e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.fail("서버 오류가 발생했습니다."));
     }
+
+
+
 }
