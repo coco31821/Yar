@@ -59,7 +59,7 @@ public class UserService {
 
     // 로그인
     @Transactional
-    public LoginResponse login(LoginRequest request) {
+    public TokenResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(LoginFailedException::new);
 
@@ -83,16 +83,16 @@ public class UserService {
                 RefreshToken.create(user, refreshToken, refreshTokenExpiredAt)
         );
 
-        return new LoginResponse(
+        return new TokenResponse(
                 accessToken,
                 refreshToken,
                 tokenProvider.getAccessTokenExpirationSeconds()
         );
     }
 
-    // refreshtoken 재발급
+    // refreshToken 재발급
     @Transactional
-    public LoginResponse refresh(RefreshRequest request) {
+    public TokenResponse refresh(RefreshRequest request) {
         RefreshToken refreshToken = refreshTokenRepository.findByToken(request.refreshToken())
                 .orElseThrow(InvalidRefreshTokenException::new);
 
@@ -115,11 +115,17 @@ public class UserService {
 
         refreshToken.rotate(newRefreshToken, newRefreshTokenExpiredAt);
 
-        return new LoginResponse(
+        return new TokenResponse(
                 newAccessToken,
                 newRefreshToken,
                 tokenProvider.getAccessTokenExpirationSeconds()
         );
+    }
+
+    // logout
+    @Transactional
+    public void logout(Long userId) {
+        refreshTokenRepository.deleteAllByUser_UserId(userId);
     }
 
 }
