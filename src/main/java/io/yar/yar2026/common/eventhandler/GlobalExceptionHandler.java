@@ -2,6 +2,7 @@ package io.yar.yar2026.common.eventhandler;
 
 import io.yar.yar2026.common.dto.ApiResponse;
 import io.yar.yar2026.user.exception.DuplicateEmailException;
+import io.yar.yar2026.user.exception.InvalidRefreshTokenException;
 import io.yar.yar2026.user.exception.LoginFailedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,10 +36,20 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(message));
     }
 
-    // 로그인 실패
+    // 로그인 실패 -> 401
     @ExceptionHandler(LoginFailedException.class)
     public ResponseEntity<ApiResponse<Void>> handleLoginFailedException(
             LoginFailedException e
+    ){
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.fail(e.getMessage()));
+    }
+
+    // refreshtoken 오류 -> 401
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidRefreshTokenException(
+            InvalidRefreshTokenException e
     ){
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)

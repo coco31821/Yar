@@ -3,6 +3,7 @@ package io.yar.yar2026.user.controller;
 import io.yar.yar2026.common.dto.ApiResponse;
 import io.yar.yar2026.user.dto.LoginRequest;
 import io.yar.yar2026.user.dto.LoginResponse;
+import io.yar.yar2026.user.dto.RefreshRequest;
 import io.yar.yar2026.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,15 @@ public class AuthController {
         LoginResponse response = userService.login(request);
 
         return ApiResponse.ok(response,"로그인되었습니다.");
+    }
+
+    @PostMapping("/refresh")
+    public ApiResponse<LoginResponse> refreshToken(
+            @Valid @RequestBody RefreshRequest request
+    ){
+        LoginResponse response = userService.refresh(request);
+
+        return ApiResponse.ok(response,"토큰이 재발급되었습니다.");
     }
 
 

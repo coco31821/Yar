@@ -5,6 +5,7 @@ import io.yar.yar2026.user.domain.RefreshToken;
 import io.yar.yar2026.user.domain.User;
 import io.yar.yar2026.user.dto.*;
 import io.yar.yar2026.user.exception.DuplicateEmailException;
+import io.yar.yar2026.user.exception.InvalidRefreshTokenException;
 import io.yar.yar2026.user.exception.LoginFailedException;
 import io.yar.yar2026.user.repository.RefreshTokenRepository;
 import io.yar.yar2026.user.repository.UserRepository;
@@ -85,6 +86,38 @@ public class UserService {
         return new LoginResponse(
                 accessToken,
                 refreshToken,
+                tokenProvider.getAccessTokenExpirationSeconds()
+        );
+    }
+
+    // refreshtoken 재발급
+    @Transactional
+    public LoginResponse refresh(RefreshRequest request) {
+        RefreshToken refreshToken = refreshTokenRepository.findByToken(request.refreshToken())
+                .orElseThrow(InvalidRefreshTokenException::new);
+
+        if (refreshToken.isExpired()) {
+            refreshTokenRepository.delete(refreshToken);
+            throw new InvalidRefreshTokenException();
+        }
+
+        User user = refreshToken.getUser();
+
+        String newAccessToken = tokenProvider.issueAccessToken(
+                user.getUserId(),
+                user.getRole()
+        );
+
+        String newRefreshToken = UUID.randomUUID().toString();
+
+        LocalDateTime newRefreshTokenExpiredAt = LocalDateTime.now()
+                .plusSeconds(tokenProvider.getRefreshTokenExpirationSeconds());
+
+        refreshToken.rotate(newRefreshToken, newRefreshTokenExpiredAt);
+
+        return new LoginResponse(
+                newAccessToken,
+                newRefreshToken,
                 tokenProvider.getAccessTokenExpirationSeconds()
         );
     }
