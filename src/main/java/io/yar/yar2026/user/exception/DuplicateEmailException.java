@@ -1,7 +1,11 @@
 package io.yar.yar2026.user.exception;
 
-public class DuplicateEmailException extends RuntimeException {
+import io.yar.yar2026.common.constants.ErrorCode;
+import io.yar.yar2026.common.exception.BusinessException;
+
+public class DuplicateEmailException extends BusinessException {
+
     public DuplicateEmailException() {
-        super("이미 사용 중인 이메일입니다.");
+        super(ErrorCode.USER_EMAIL_DUPLICATED);
     }
 }

@@ -1,5 +1,7 @@
 package io.yar.yar2026.user.controller;
 
+import io.yar.yar2026.common.config.security.JwtAuthenticationFilter;
+import io.yar.yar2026.common.config.security.TokenProvider;
 import io.yar.yar2026.user.constants.Role;
 import io.yar.yar2026.user.dto.SignupRequest;
 import io.yar.yar2026.user.dto.UserCreateResponse;
@@ -35,6 +37,10 @@ class UserControllerTest {
     @MockitoBean
     private UserService userService;
 
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
     @Nested
     @DisplayName("회원가입")
     class Signup {
@@ -66,7 +72,7 @@ class UserControllerTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request))
                     )
-                    .andExpect(status().isOk())
+                    .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("가입되었습니다."))
                     .andExpect(jsonPath("$.data.userId").value(1L))
