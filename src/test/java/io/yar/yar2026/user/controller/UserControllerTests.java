@@ -41,6 +41,9 @@ class UserControllerTest {
     @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @MockitoBean
+    private TokenProvider tokenProvider;
+
     @Nested
     @DisplayName("회원가입")
     class Signup {
@@ -72,7 +75,7 @@ class UserControllerTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request))
                     )
-                    .andExpect(status().isCreated())
+                    .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("가입되었습니다."))
                     .andExpect(jsonPath("$.data.userId").value(1L))

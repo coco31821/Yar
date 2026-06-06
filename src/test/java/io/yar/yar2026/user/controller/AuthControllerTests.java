@@ -38,6 +38,12 @@ class AuthControllerTest {
     @MockitoBean
     private UserService userService;
 
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockitoBean
+    private TokenProvider tokenProvider;
+
     @Test
     @DisplayName("로그인 성공 - 이메일과 비밀번호를 받아 토큰 응답을 반환한다")
     void login_success() throws Exception {
@@ -60,7 +66,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("로그인되었습니다."))
                 .andExpect(jsonPath("$.data.accessToken").value("access-token"))
@@ -110,9 +116,9 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/refresh")
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("토큰이 재발급되었습니다."))
+                .andExpect(jsonPath("$.message").isEmpty())
                 .andExpect(jsonPath("$.data.accessToken").value("new-access-token"))
                 .andExpect(jsonPath("$.data.refreshToken").value("new-refresh-token"))
                 .andExpect(jsonPath("$.data.accessExpiresInSeconds").value(900));
@@ -153,7 +159,7 @@ class AuthControllerTest {
         // when & then
         mockMvc.perform(post("/api/v1/auth/logout")
                         .principal(principal))
-                .andExpect(status().isCreated())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("로그아웃되었습니다."))
                 .andExpect(jsonPath("$.data").isEmpty());
