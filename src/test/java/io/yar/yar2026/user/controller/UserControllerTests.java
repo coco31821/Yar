@@ -1,5 +1,7 @@
 package io.yar.yar2026.user.controller;
 
+import io.yar.yar2026.common.config.security.JwtAuthenticationFilter;
+import io.yar.yar2026.common.config.security.TokenProvider;
 import io.yar.yar2026.user.constants.Role;
 import io.yar.yar2026.user.dto.SignupRequest;
 import io.yar.yar2026.user.dto.UserCreateResponse;
@@ -34,6 +36,13 @@ class UserControllerTest {
 
     @MockitoBean
     private UserService userService;
+
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockitoBean
+    private TokenProvider tokenProvider;
 
     @Nested
     @DisplayName("회원가입")

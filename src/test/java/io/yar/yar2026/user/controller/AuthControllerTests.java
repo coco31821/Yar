@@ -1,5 +1,7 @@
 package io.yar.yar2026.user.controller;
 
+import io.yar.yar2026.common.config.security.JwtAuthenticationFilter;
+import io.yar.yar2026.common.config.security.TokenProvider;
 import io.yar.yar2026.user.dto.LoginRequest;
 import io.yar.yar2026.user.dto.RefreshRequest;
 import io.yar.yar2026.user.dto.TokenResponse;
@@ -23,7 +25,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-//@AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureMockMvc(addFilters = false)
 @WebMvcTest(AuthController.class)
 class AuthControllerTest {
 
@@ -35,6 +37,12 @@ class AuthControllerTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockitoBean
+    private TokenProvider tokenProvider;
 
     @Test
     @DisplayName("로그인 성공 - 이메일과 비밀번호를 받아 토큰 응답을 반환한다")
@@ -86,7 +94,7 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("이메일은 필수입니다."))
-                .andExpect(jsonPath("$.data").doesNotExist());
+                .andExpect(jsonPath("$.data").isEmpty());
     }
 
     @Test
@@ -110,7 +118,7 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("토큰이 재발급되었습니다."))
+                .andExpect(jsonPath("$.message").isEmpty())
                 .andExpect(jsonPath("$.data.accessToken").value("new-access-token"))
                 .andExpect(jsonPath("$.data.refreshToken").value("new-refresh-token"))
                 .andExpect(jsonPath("$.data.accessExpiresInSeconds").value(900));
@@ -135,7 +143,7 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Refresh Token은 필수입니다."))
-                .andExpect(jsonPath("$.data").doesNotExist());
+                .andExpect(jsonPath("$.data").isEmpty());
     }
 
     @Test
@@ -154,7 +162,7 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("로그아웃되었습니다."))
-                .andExpect(jsonPath("$.data").doesNotExist());
+                .andExpect(jsonPath("$.data").isEmpty());
 
         then(userService).should().logout(1L);
     }

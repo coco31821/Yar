@@ -1,9 +1,11 @@
 package io.yar.yar2026.user.exception;
 
-public class InvalidRefreshTokenException extends RuntimeException {
-    public InvalidRefreshTokenException() {
+import io.yar.yar2026.common.constants.ErrorCode;
+import io.yar.yar2026.common.exception.BusinessException;
 
-        super("유효하지 않은 Refresh Token입니다.")
-        ;
+public class InvalidRefreshTokenException extends BusinessException {
+
+    public InvalidRefreshTokenException() {
+        super(ErrorCode.INVALID_REFRESH_TOKEN);
     }
 }

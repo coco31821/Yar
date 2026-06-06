@@ -1,7 +1,5 @@
 package io.yar.yar2026.common.dto;
 
-import org.springframework.http.HttpStatus;
-
 public record ApiResponse<T>(
         boolean success,
         String message,
