@@ -52,7 +52,9 @@ public class UserItem extends BaseEntity {
     @Column(nullable = false)
     private int enhancementCount;
 
-    private String obtainedFrom;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserItemObtainedFrom obtainedFrom;
 
     @Column(nullable = false)
     private LocalDateTime acquiredAt;
@@ -66,7 +68,7 @@ public class UserItem extends BaseEntity {
             int quantity,
             UserItemStatus status,
             int enhancementGrade,
-            String obtainedFrom
+            UserItemObtainedFrom obtainedFrom
     ) {
         this.user = user;
         this.item = item;
@@ -74,7 +76,7 @@ public class UserItem extends BaseEntity {
         this.status = status == null ? UserItemStatus.OWNED : status;
         this.enhancementGrade = enhancementGrade;
         this.enhancementCount = 0;
-        this.obtainedFrom = obtainedFrom;
+        this.obtainedFrom = obtainedFrom == null ? UserItemObtainedFrom.PICKUP : obtainedFrom;
         this.acquiredAt = LocalDateTime.now();
     }
 
