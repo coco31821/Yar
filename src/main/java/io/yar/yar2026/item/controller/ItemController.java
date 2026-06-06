@@ -16,25 +16,24 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/items")
 @RequiredArgsConstructor
 public class ItemController {
 
     private final ItemService itemService;
-    private final ItemRepository itemRepository;
-    private final UserService userService;
 
-//    @GetMapping
-//    public ApiResponse<List<ItemResponse>> getAllItems(){
-//        ItemResponse response = itemService.getList();
-//
-//        return ApiResponse.ok(response,null);
-//    }
+    @GetMapping
+    public ApiResponse<List<ItemResponse>> getAllItems(){
+        List<ItemResponse> response = itemService.getItems();
+
+        return ApiResponse.ok(response,null);
+    }
 
     @GetMapping("/{id}")
     public ApiResponse<ItemResponse> getItem(@PathVariable Long id) {
-        Item item = requireExists(id);
 
         ItemResponse response = itemService.getItem(id);
 
@@ -42,10 +41,7 @@ public class ItemController {
     }
 
 
-    public Item requireExists(Long itemId) {
-        return itemRepository.findById(itemId)
-                .orElseThrow(ItemNotFoundException::new);
-    }
+
 
 
 
