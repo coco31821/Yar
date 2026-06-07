@@ -17,7 +17,7 @@ public record UserItemResponse(
         int sellPrice,
         int quantity,
         boolean equipped,
-        int enhancementGrade,
+//        int enhancementGrade,
         String acquiredAt
 ) {
 
@@ -39,7 +39,7 @@ public record UserItemResponse(
                 item.getSellPrice(),
                 userItem.getQuantity(),
                 userItem.isEquipped(),
-                userItem.getEnhancementGrade(),
+//                userItem.getEnhancementGrade(),
                 userItem.getAcquiredAt() == null ? null : userItem.getAcquiredAt().format(FORMATTER)
         );
     }

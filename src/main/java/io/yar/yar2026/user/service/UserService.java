@@ -64,12 +64,14 @@ public class UserService {
         return UserCreateResponse.from(savedUser);
     }
 
+    // 내 계정 정보 조회
     public UserResponse getMe(Long userId) {
         User user = requireExists(userId);
 
         return UserResponse.from(user);
     }
 
+    // 내 전체 데이터 조회
     @Transactional
     public UserGameDataResponse getMyData(Long userId) {
         User user = requireExists(userId);
