@@ -5,6 +5,8 @@ import io.yar.yar2026.friend.domain.FriendRequestStatus;
 import io.yar.yar2026.friend.dto.FriendRequestCreateRequest;
 import io.yar.yar2026.friend.dto.FriendRequestResponse;
 import io.yar.yar2026.friend.exception.DuplicateFriendRequestException;
+import io.yar.yar2026.friend.exception.FriendRequestNotFoundException;
+import io.yar.yar2026.friend.exception.InvalidFriendRequestException;
 import io.yar.yar2026.friend.exception.SelfFriendRequestException;
 import io.yar.yar2026.friend.repository.FriendRequestRepository;
 import io.yar.yar2026.user.domain.User;
@@ -219,6 +221,148 @@ class FriendServiceTest {
                             userId,
                             FriendRequestStatus.PENDING
                     );
+        }
+    }
+
+    @Nested
+    @DisplayName("친구 요청 처리")
+    class HandleFriendRequest {
+
+        @Test
+        @DisplayName("받은 친구 요청을 수락하면 상태가 ACCEPTED로 변경된다")
+        void acceptFriendRequest_success() {
+            // given
+            Long userId = 1L;
+            Long requestId = 10L;
+            User fromUser = userOf(2L, "요청보낸유저");
+            User toUser = userOf(userId, "받는유저");
+            FriendRequest friendRequest = friendRequestOf(requestId, fromUser, toUser);
+
+            given(friendRequestRepository.findById(requestId))
+                    .willReturn(Optional.of(friendRequest));
+
+            // when
+            FriendRequestResponse response = friendService.acceptFriendRequest(userId, requestId);
+
+            // then
+            assertThat(friendRequest.getStatus()).isEqualTo(FriendRequestStatus.ACCEPTED);
+            assertThat(response.friendRequestId()).isEqualTo(requestId);
+            assertThat(response.status()).isEqualTo(FriendRequestStatus.ACCEPTED);
+            assertThat(response.nickname()).isEqualTo("요청보낸유저");
+        }
+
+        @Test
+        @DisplayName("받은 친구 요청을 거절하면 상태가 DECLINED로 변경된다")
+        void declineFriendRequest_success() {
+            // given
+            Long userId = 1L;
+            Long requestId = 10L;
+            User fromUser = userOf(2L, "요청보낸유저");
+            User toUser = userOf(userId, "받는유저");
+            FriendRequest friendRequest = friendRequestOf(requestId, fromUser, toUser);
+
+            given(friendRequestRepository.findById(requestId))
+                    .willReturn(Optional.of(friendRequest));
+
+            // when
+            friendService.declineFriendRequest(userId, requestId);
+
+            // then
+            assertThat(friendRequest.getStatus()).isEqualTo(FriendRequestStatus.DECLINED);
+        }
+
+        @Test
+        @DisplayName("보낸 친구 요청을 취소하면 상태가 CANCELED로 변경된다")
+        void cancelFriendRequest_success() {
+            // given
+            Long userId = 1L;
+            Long requestId = 10L;
+            User fromUser = userOf(userId, "보낸유저");
+            User toUser = userOf(2L, "요청받은유저");
+            FriendRequest friendRequest = friendRequestOf(requestId, fromUser, toUser);
+
+            given(friendRequestRepository.findById(requestId))
+                    .willReturn(Optional.of(friendRequest));
+
+            // when
+            friendService.cancelFriendRequest(userId, requestId);
+
+            // then
+            assertThat(friendRequest.getStatus()).isEqualTo(FriendRequestStatus.CANCELED);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 친구 요청이면 FriendRequestNotFoundException이 발생한다")
+        void handleFriendRequest_fail_when_not_found() {
+            // given
+            Long userId = 1L;
+            Long requestId = 999L;
+
+            given(friendRequestRepository.findById(requestId))
+                    .willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> friendService.acceptFriendRequest(userId, requestId))
+                    .isInstanceOf(FriendRequestNotFoundException.class)
+                    .hasMessage("친구 요청을 찾을 수 없습니다.");
+        }
+
+        @Test
+        @DisplayName("요청 받은 사람이 아니면 수락할 수 없다")
+        void acceptFriendRequest_fail_when_not_receiver() {
+            // given
+            Long userId = 3L;
+            Long requestId = 10L;
+            User fromUser = userOf(2L, "요청보낸유저");
+            User toUser = userOf(1L, "받는유저");
+            FriendRequest friendRequest = friendRequestOf(requestId, fromUser, toUser);
+
+            given(friendRequestRepository.findById(requestId))
+                    .willReturn(Optional.of(friendRequest));
+
+            // when & then
+            assertThatThrownBy(() -> friendService.acceptFriendRequest(userId, requestId))
+                    .isInstanceOf(InvalidFriendRequestException.class)
+                    .hasMessage("본인에게 온 요청만 수락할 수 있습니다.");
+        }
+
+        @Test
+        @DisplayName("요청 보낸 사람이 아니면 취소할 수 없다")
+        void cancelFriendRequest_fail_when_not_sender() {
+            // given
+            Long userId = 3L;
+            Long requestId = 10L;
+            User fromUser = userOf(1L, "보낸유저");
+            User toUser = userOf(2L, "요청받은유저");
+            FriendRequest friendRequest = friendRequestOf(requestId, fromUser, toUser);
+
+            given(friendRequestRepository.findById(requestId))
+                    .willReturn(Optional.of(friendRequest));
+
+            // when & then
+            assertThatThrownBy(() -> friendService.cancelFriendRequest(userId, requestId))
+                    .isInstanceOf(InvalidFriendRequestException.class)
+                    .hasMessage("본인이 보낸 요청만 취소할 수 있습니다.");
+        }
+
+        @Test
+        @DisplayName("PENDING 상태가 아니면 처리할 수 없다")
+        void handleFriendRequest_fail_when_not_pending() {
+            // given
+            Long userId = 1L;
+            Long requestId = 10L;
+            User fromUser = userOf(2L, "요청보낸유저");
+            User toUser = userOf(userId, "받는유저");
+            FriendRequest friendRequest = friendRequestOf(requestId, fromUser, toUser);
+            friendRequest.accept();
+
+            given(friendRequestRepository.findById(requestId))
+                    .willReturn(Optional.of(friendRequest));
+
+            // when & then
+            assertThatThrownBy(() -> friendService.declineFriendRequest(userId, requestId))
+                    .isInstanceOf(InvalidFriendRequestException.class)
+                    .hasMessage("대기 중인 친구 요청만 처리할 수 있습니다.");
         }
     }
 
