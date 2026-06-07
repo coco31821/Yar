@@ -1,6 +1,10 @@
 package io.yar.yar2026.user.service;
 
 import io.yar.yar2026.common.config.security.TokenProvider;
+import io.yar.yar2026.inventory.repository.UserItemRepository;
+import io.yar.yar2026.profile.domain.Profile;
+import io.yar.yar2026.profile.dto.ProfileResponse;
+import io.yar.yar2026.profile.repository.ProfileRepository;
 import io.yar.yar2026.user.constants.Role;
 import io.yar.yar2026.user.domain.RefreshToken;
 import io.yar.yar2026.user.domain.User;
@@ -10,6 +14,9 @@ import io.yar.yar2026.user.exception.InvalidRefreshTokenException;
 import io.yar.yar2026.user.exception.LoginFailedException;
 import io.yar.yar2026.user.repository.RefreshTokenRepository;
 import io.yar.yar2026.user.repository.UserRepository;
+import io.yar.yar2026.wallet.domain.Wallet;
+import io.yar.yar2026.wallet.dto.WalletResponse;
+import io.yar.yar2026.wallet.repository.WalletRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,6 +50,15 @@ class UserServiceTest {
 
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
+
+    @Mock
+    private ProfileRepository profileRepository;
+
+    @Mock
+    private WalletRepository walletRepository;
+
+    @Mock
+    private UserItemRepository userItemRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -327,6 +343,78 @@ class UserServiceTest {
 
         // then
         then(refreshTokenRepository).should().deleteAllByUser_UserId(userId);
+    }
+
+    @Test
+    @DisplayName("프로필 조회 성공 - 현재 유저의 프로필을 응답 DTO로 반환한다")
+    void getProfile_success() {
+        // given
+        User user = createUser(
+                1L,
+                "test@test.com",
+                "encoded-password",
+                "테스터"
+        );
+
+        Profile profile = Profile.builder()
+                .user(user)
+                .level(10)
+                .exp(500L)
+                .totalPlaySeconds(3600L)
+                .build();
+
+        given(userRepository.findById(1L))
+                .willReturn(Optional.of(user));
+
+        given(profileRepository.findByUser_UserId(1L))
+                .willReturn(Optional.of(profile));
+
+        // when
+        ProfileResponse response = userService.getProfile(1L);
+
+        // then
+        assertThat(response.level()).isEqualTo(10);
+        assertThat(response.exp()).isEqualTo(500L);
+        assertThat(response.totalPlaySeconds()).isEqualTo(3600L);
+
+        then(userRepository).should().findById(1L);
+        then(profileRepository).should().findByUser_UserId(1L);
+        then(profileRepository).should(never()).save(any(Profile.class));
+    }
+
+    @Test
+    @DisplayName("지갑 조회 성공 - 현재 유저의 지갑을 응답 DTO로 반환한다")
+    void getWallet_success() {
+        // given
+        User user = createUser(
+                1L,
+                "test@test.com",
+                "encoded-password",
+                "테스터"
+        );
+
+        Wallet wallet = Wallet.builder()
+                .user(user)
+                .gold(5000L)
+                .gem(10L)
+                .build();
+
+        given(userRepository.findById(1L))
+                .willReturn(Optional.of(user));
+
+        given(walletRepository.findByUser_UserId(1L))
+                .willReturn(Optional.of(wallet));
+
+        // when
+        WalletResponse response = userService.getWallet(1L);
+
+        // then
+        assertThat(response.gold()).isEqualTo(5000L);
+        assertThat(response.gem()).isEqualTo(10L);
+
+        then(userRepository).should().findById(1L);
+        then(walletRepository).should().findByUser_UserId(1L);
+        then(walletRepository).should(never()).save(any(Wallet.class));
     }
 
     private User createUser(
