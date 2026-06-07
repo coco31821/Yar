@@ -1,6 +1,7 @@
 package io.yar.yar2026.friend;
 
 import io.yar.yar2026.friend.domain.FriendRequest;
+import io.yar.yar2026.friend.domain.FriendRequestStatus;
 import io.yar.yar2026.friend.dto.FriendRequestCreateRequest;
 import io.yar.yar2026.friend.dto.FriendRequestResponse;
 import io.yar.yar2026.friend.exception.DuplicateFriendRequestException;
@@ -12,6 +13,8 @@ import io.yar.yar2026.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -50,5 +53,27 @@ public class FriendService {
         FriendRequest savedFriendRequest = friendRequestRepository.save(friendRequest);
 
         return FriendRequestResponse.from(savedFriendRequest);
+    }
+
+    public List<FriendRequestResponse> getReceivedFriendRequests(Long userId) {
+        return friendRequestRepository
+                .findAllByToUser_UserIdAndStatusOrderByCreatedAtDesc(
+                        userId,
+                        FriendRequestStatus.PENDING
+                )
+                .stream()
+                .map(FriendRequestResponse::fromReceived)
+                .toList();
+    }
+
+    public List<FriendRequestResponse> getSentFriendRequests(Long userId) {
+        return friendRequestRepository
+                .findAllByFromUser_UserIdAndStatusOrderByCreatedAtDesc(
+                        userId,
+                        FriendRequestStatus.PENDING
+                )
+                .stream()
+                .map(FriendRequestResponse::fromSent)
+                .toList();
     }
 }

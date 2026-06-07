@@ -21,11 +21,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -136,6 +138,79 @@ class FriendControllerTest {
                     .andExpect(jsonPath("$.success").value(false))
                     .andExpect(jsonPath("$.message").value("이미 친구 관계입니다. / 이미 보낸 친구 요청이 있습니다."))
                     .andExpect(jsonPath("$.data").isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("친구 요청 조회")
+    class GetFriendRequests {
+
+        @Test
+        @DisplayName("받은 친구 요청 목록 조회 성공 시 응답을 반환한다")
+        void getReceivedFriendRequests_success() throws Exception {
+            // given
+            Long userId = 1L;
+            FriendRequestResponse response = new FriendRequestResponse(
+                    10L,
+                    2L,
+                    userId,
+                    FriendRequestStatus.PENDING,
+                    LocalDateTime.of(2026, 6, 7, 10, 0),
+                    "요청보낸유저"
+            );
+
+            given(friendService.getReceivedFriendRequests(userId))
+                    .willReturn(List.of(response));
+
+            // when & then
+            mockMvc.perform(
+                            get("/api/v1/users/me/friends/requests")
+                                    .principal(new UsernamePasswordAuthenticationToken(userId, null))
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").isEmpty())
+                    .andExpect(jsonPath("$.data[0].friendRequestId").value(10L))
+                    .andExpect(jsonPath("$.data[0].fromUserId").value(2L))
+                    .andExpect(jsonPath("$.data[0].toUserId").value(userId))
+                    .andExpect(jsonPath("$.data[0].status").value("PENDING"))
+                    .andExpect(jsonPath("$.data[0].nickname").value("요청보낸유저"));
+
+            then(friendService).should().getReceivedFriendRequests(userId);
+        }
+
+        @Test
+        @DisplayName("보낸 친구 요청 목록 조회 성공 시 응답을 반환한다")
+        void getSentFriendRequests_success() throws Exception {
+            // given
+            Long userId = 1L;
+            FriendRequestResponse response = new FriendRequestResponse(
+                    10L,
+                    userId,
+                    2L,
+                    FriendRequestStatus.PENDING,
+                    LocalDateTime.of(2026, 6, 7, 10, 0),
+                    "요청받은유저"
+            );
+
+            given(friendService.getSentFriendRequests(userId))
+                    .willReturn(List.of(response));
+
+            // when & then
+            mockMvc.perform(
+                            get("/api/v1/users/me/friends/requests/sent")
+                                    .principal(new UsernamePasswordAuthenticationToken(userId, null))
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").isEmpty())
+                    .andExpect(jsonPath("$.data[0].friendRequestId").value(10L))
+                    .andExpect(jsonPath("$.data[0].fromUserId").value(userId))
+                    .andExpect(jsonPath("$.data[0].toUserId").value(2L))
+                    .andExpect(jsonPath("$.data[0].status").value("PENDING"))
+                    .andExpect(jsonPath("$.data[0].nickname").value("요청받은유저"));
+
+            then(friendService).should().getSentFriendRequests(userId);
         }
     }
 }

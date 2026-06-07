@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -152,6 +153,75 @@ class FriendServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("친구 요청 조회")
+    class GetFriendRequests {
+
+        @Test
+        @DisplayName("받은 친구 요청 목록을 PENDING 상태 기준으로 반환한다")
+        void getReceivedFriendRequests_success() {
+            // given
+            Long userId = 1L;
+            User fromUser = userOf(2L, "요청보낸유저");
+            User toUser = userOf(userId, "받는유저");
+            FriendRequest friendRequest = friendRequestOf(10L, fromUser, toUser);
+
+            given(friendRequestRepository.findAllByToUser_UserIdAndStatusOrderByCreatedAtDesc(
+                    userId,
+                    FriendRequestStatus.PENDING
+            )).willReturn(List.of(friendRequest));
+
+            // when
+            List<FriendRequestResponse> response = friendService.getReceivedFriendRequests(userId);
+
+            // then
+            assertThat(response).hasSize(1);
+            assertThat(response.get(0).friendRequestId()).isEqualTo(10L);
+            assertThat(response.get(0).fromUserId()).isEqualTo(2L);
+            assertThat(response.get(0).toUserId()).isEqualTo(userId);
+            assertThat(response.get(0).status()).isEqualTo(FriendRequestStatus.PENDING);
+            assertThat(response.get(0).nickname()).isEqualTo("요청보낸유저");
+
+            then(friendRequestRepository).should()
+                    .findAllByToUser_UserIdAndStatusOrderByCreatedAtDesc(
+                            userId,
+                            FriendRequestStatus.PENDING
+                    );
+        }
+
+        @Test
+        @DisplayName("보낸 친구 요청 목록을 PENDING 상태 기준으로 반환한다")
+        void getSentFriendRequests_success() {
+            // given
+            Long userId = 1L;
+            User fromUser = userOf(userId, "보낸유저");
+            User toUser = userOf(2L, "요청받은유저");
+            FriendRequest friendRequest = friendRequestOf(10L, fromUser, toUser);
+
+            given(friendRequestRepository.findAllByFromUser_UserIdAndStatusOrderByCreatedAtDesc(
+                    userId,
+                    FriendRequestStatus.PENDING
+            )).willReturn(List.of(friendRequest));
+
+            // when
+            List<FriendRequestResponse> response = friendService.getSentFriendRequests(userId);
+
+            // then
+            assertThat(response).hasSize(1);
+            assertThat(response.get(0).friendRequestId()).isEqualTo(10L);
+            assertThat(response.get(0).fromUserId()).isEqualTo(userId);
+            assertThat(response.get(0).toUserId()).isEqualTo(2L);
+            assertThat(response.get(0).status()).isEqualTo(FriendRequestStatus.PENDING);
+            assertThat(response.get(0).nickname()).isEqualTo("요청받은유저");
+
+            then(friendRequestRepository).should()
+                    .findAllByFromUser_UserIdAndStatusOrderByCreatedAtDesc(
+                            userId,
+                            FriendRequestStatus.PENDING
+                    );
+        }
+    }
+
     private User userOf(Long userId, String nickname) {
         User user = User.builder()
                 .email("user" + userId + "@test.com")
@@ -162,5 +232,16 @@ class FriendServiceTest {
         ReflectionTestUtils.setField(user, "userId", userId);
 
         return user;
+    }
+
+    private FriendRequest friendRequestOf(Long friendRequestId, User fromUser, User toUser) {
+        FriendRequest friendRequest = FriendRequest.builder()
+                .fromUser(fromUser)
+                .toUser(toUser)
+                .build();
+
+        ReflectionTestUtils.setField(friendRequest, "friendRequestId", friendRequestId);
+
+        return friendRequest;
     }
 }

@@ -14,6 +14,21 @@ public record FriendRequestResponse(
         String nickname
 ) {
     public static FriendRequestResponse from(FriendRequest friendRequest) {
+        return fromSent(friendRequest);
+    }
+
+    public static FriendRequestResponse fromReceived(FriendRequest friendRequest) {
+        return new FriendRequestResponse(
+                friendRequest.getFriendRequestId(),
+                friendRequest.getFromUser().getUserId(),
+                friendRequest.getToUser().getUserId(),
+                friendRequest.getStatus(),
+                friendRequest.getCreatedAt(),
+                friendRequest.getFromUser().getNickname()
+        );
+    }
+
+    public static FriendRequestResponse fromSent(FriendRequest friendRequest) {
         return new FriendRequestResponse(
                 friendRequest.getFriendRequestId(),
                 friendRequest.getFromUser().getUserId(),
