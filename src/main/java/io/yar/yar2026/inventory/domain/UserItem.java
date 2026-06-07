@@ -87,4 +87,14 @@ public class UserItem extends BaseEntity {
     public boolean isVisibleInInventory() {
         return status == UserItemStatus.OWNED || status == UserItemStatus.EQUIPPED;
     }
+
+    // 수량 증가
+    public void increaseQuantity(int quantity) {
+        this.quantity += quantity;
+    }
+    // 수량 감소
+    public void decreaseQuantity(int quantity) {
+        this.quantity -= quantity;
+    }
+
 }
