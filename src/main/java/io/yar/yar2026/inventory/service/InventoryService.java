@@ -34,18 +34,29 @@ public class InventoryService {
         Item item = itemRepository.findById(request.itemId())
                 .orElseThrow(ItemNotFoundException::new);
 
-        UserItem userItem = UserItem.builder()
-                .user(user)
-                .item(item)
-                .quantity(request.quantity())
-                .status(UserItemStatus.OWNED)
-                .enhancementGrade(0)
-                .obtainedFrom(UserItemObtainedFrom.PICKUP)  // 획득경로 정리
-                .build();
+        UserItem userItem = userItemRepository
+                .findByUser_UserIdAndItem_ItemIdAndEnhancementGradeAndStatus(
+                        userId,
+                        request.itemId(),
+                        0,
+                        UserItemStatus.OWNED
+                )
+                .map(existingUserItem -> {
+                    existingUserItem.increaseQuantity(request.quantity());
+                    return existingUserItem;
+                })
+                .orElseGet(() -> userItemRepository.save(
+                        UserItem.builder()
+                                .user(user)
+                                .item(item)
+                                .quantity(request.quantity())
+                                .status(UserItemStatus.OWNED)
+                                .enhancementGrade(0)
+                                .obtainedFrom(UserItemObtainedFrom.PICKUP)
+                                .build()
+                ));
 
-        UserItem savedUserItem = userItemRepository.save(userItem);
-
-        return UserItemResponse.from(savedUserItem);
+        return UserItemResponse.from(userItem);
     }
 
     // 유저 인벤토리 조회
