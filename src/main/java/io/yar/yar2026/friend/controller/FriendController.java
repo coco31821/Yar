@@ -6,8 +6,10 @@ import io.yar.yar2026.friend.dto.FriendRequestCreateRequest;
 import io.yar.yar2026.friend.dto.FriendRequestResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -54,5 +56,41 @@ public class FriendController {
         List<FriendRequestResponse> response = friendService.getSentFriendRequests(userId);
 
         return ApiResponse.ok(response, null);
+    }
+
+    @PostMapping("/requests/{requestId}/accept")
+    public ApiResponse<FriendRequestResponse> acceptFriendRequest(
+            Authentication authentication,
+            @PathVariable Long requestId
+    ) {
+        Long userId = (Long) authentication.getPrincipal();
+
+        FriendRequestResponse response = friendService.acceptFriendRequest(userId, requestId);
+
+        return ApiResponse.ok(response, "친구 요청을 수락했습니다.");
+    }
+
+    @PostMapping("/requests/{requestId}/decline")
+    public ApiResponse<Void> declineFriendRequest(
+            Authentication authentication,
+            @PathVariable Long requestId
+    ) {
+        Long userId = (Long) authentication.getPrincipal();
+
+        friendService.declineFriendRequest(userId, requestId);
+
+        return ApiResponse.ok(null, "친구 요청을 거절했습니다.");
+    }
+
+    @DeleteMapping("/requests/{requestId}")
+    public ApiResponse<Void> cancelFriendRequest(
+            Authentication authentication,
+            @PathVariable Long requestId
+    ) {
+        Long userId = (Long) authentication.getPrincipal();
+
+        friendService.cancelFriendRequest(userId, requestId);
+
+        return ApiResponse.ok(null, "친구 요청을 취소했습니다.");
     }
 }

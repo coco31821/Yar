@@ -7,6 +7,8 @@ import io.yar.yar2026.friend.domain.FriendRequestStatus;
 import io.yar.yar2026.friend.dto.FriendRequestCreateRequest;
 import io.yar.yar2026.friend.dto.FriendRequestResponse;
 import io.yar.yar2026.friend.exception.DuplicateFriendRequestException;
+import io.yar.yar2026.friend.exception.FriendRequestNotFoundException;
+import io.yar.yar2026.friend.exception.InvalidFriendRequestException;
 import io.yar.yar2026.friend.exception.SelfFriendRequestException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,6 +29,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -211,6 +215,127 @@ class FriendControllerTest {
                     .andExpect(jsonPath("$.data[0].nickname").value("요청받은유저"));
 
             then(friendService).should().getSentFriendRequests(userId);
+        }
+    }
+
+    @Nested
+    @DisplayName("친구 요청 처리")
+    class HandleFriendRequest {
+
+        @Test
+        @DisplayName("친구 요청 수락 성공 시 응답을 반환한다")
+        void acceptFriendRequest_success() throws Exception {
+            // given
+            Long userId = 1L;
+            Long requestId = 10L;
+            FriendRequestResponse response = new FriendRequestResponse(
+                    requestId,
+                    2L,
+                    userId,
+                    FriendRequestStatus.ACCEPTED,
+                    LocalDateTime.of(2026, 6, 7, 10, 0),
+                    "요청보낸유저"
+            );
+
+            given(friendService.acceptFriendRequest(userId, requestId))
+                    .willReturn(response);
+
+            // when & then
+            mockMvc.perform(
+                            post("/api/v1/users/me/friends/requests/{requestId}/accept", requestId)
+                                    .principal(new UsernamePasswordAuthenticationToken(userId, null))
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("친구 요청을 수락했습니다."))
+                    .andExpect(jsonPath("$.data.friendRequestId").value(requestId))
+                    .andExpect(jsonPath("$.data.status").value("ACCEPTED"))
+                    .andExpect(jsonPath("$.data.nickname").value("요청보낸유저"));
+
+            then(friendService).should().acceptFriendRequest(userId, requestId);
+        }
+
+        @Test
+        @DisplayName("친구 요청 거절 성공 시 응답을 반환한다")
+        void declineFriendRequest_success() throws Exception {
+            // given
+            Long userId = 1L;
+            Long requestId = 10L;
+
+            // when & then
+            mockMvc.perform(
+                            post("/api/v1/users/me/friends/requests/{requestId}/decline", requestId)
+                                    .principal(new UsernamePasswordAuthenticationToken(userId, null))
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("친구 요청을 거절했습니다."))
+                    .andExpect(jsonPath("$.data").isEmpty());
+
+            then(friendService).should().declineFriendRequest(userId, requestId);
+        }
+
+        @Test
+        @DisplayName("친구 요청 취소 성공 시 응답을 반환한다")
+        void cancelFriendRequest_success() throws Exception {
+            // given
+            Long userId = 1L;
+            Long requestId = 10L;
+
+            // when & then
+            mockMvc.perform(
+                            delete("/api/v1/users/me/friends/requests/{requestId}", requestId)
+                                    .principal(new UsernamePasswordAuthenticationToken(userId, null))
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("친구 요청을 취소했습니다."))
+                    .andExpect(jsonPath("$.data").isEmpty());
+
+            then(friendService).should().cancelFriendRequest(userId, requestId);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 친구 요청이면 404 응답을 반환한다")
+        void handleFriendRequest_fail_when_not_found() throws Exception {
+            // given
+            Long userId = 1L;
+            Long requestId = 999L;
+
+            given(friendService.acceptFriendRequest(userId, requestId))
+                    .willThrow(new FriendRequestNotFoundException());
+
+            // when & then
+            mockMvc.perform(
+                            post("/api/v1/users/me/friends/requests/{requestId}/accept", requestId)
+                                    .principal(new UsernamePasswordAuthenticationToken(userId, null))
+                    )
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.message").value("친구 요청을 찾을 수 없습니다."))
+                    .andExpect(jsonPath("$.data").isEmpty());
+        }
+
+        @Test
+        @DisplayName("권한이 없는 요청 처리이면 400 응답을 반환한다")
+        void handleFriendRequest_fail_when_invalid_actor() throws Exception {
+            // given
+            Long userId = 1L;
+            Long requestId = 10L;
+
+            willThrow(new InvalidFriendRequestException("본인이 보낸 요청만 취소할 수 있습니다."))
+                    .given(friendService)
+                    .cancelFriendRequest(userId, requestId);
+
+            // when & then
+            mockMvc.perform(
+                            delete("/api/v1/users/me/friends/requests/{requestId}", requestId)
+                                    .principal(new UsernamePasswordAuthenticationToken(userId, null))
+                    )
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.message").value("본인이 보낸 요청만 취소할 수 있습니다."))
+                    .andExpect(jsonPath("$.data").isEmpty());
         }
     }
 }
