@@ -2,11 +2,13 @@ package io.yar.yar2026.user.controller;
 
 import io.yar.yar2026.common.config.security.JwtAuthenticationFilter;
 import io.yar.yar2026.common.config.security.TokenProvider;
+import io.yar.yar2026.profile.dto.ProfileResponse;
 import io.yar.yar2026.user.constants.Role;
 import io.yar.yar2026.user.dto.SignupRequest;
 import io.yar.yar2026.user.dto.UserCreateResponse;
 import io.yar.yar2026.user.exception.DuplicateEmailException;
 import io.yar.yar2026.user.service.UserService;
+import io.yar.yar2026.wallet.dto.WalletResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -14,12 +16,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
+import java.security.Principal;
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -188,6 +195,82 @@ class UserControllerTest {
 
             then(userService)
                     .shouldHaveNoInteractions();
+        }
+    }
+
+    @Nested
+    @DisplayName("프로필 조회")
+    class GetProfile {
+
+        @Test
+        @DisplayName("성공 시 내 프로필 정보를 반환한다")
+        void getProfile_success() throws Exception {
+            // given
+            Principal principal = new UsernamePasswordAuthenticationToken(
+                    1L,
+                    null,
+                    List.of()
+            );
+
+            ProfileResponse response = new ProfileResponse(
+                    10,
+                    500L,
+                    3600L
+            );
+
+            given(userService.getProfile(1L))
+                    .willReturn(response);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/users/me/profile")
+                            .principal(principal))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").isEmpty())
+                    .andExpect(jsonPath("$.data.level").value(10))
+                    .andExpect(jsonPath("$.data.exp").value(500L))
+                    .andExpect(jsonPath("$.data.totalPlaySeconds").value(3600L));
+
+            then(userService)
+                    .should()
+                    .getProfile(1L);
+        }
+    }
+
+    @Nested
+    @DisplayName("지갑 조회")
+    class GetWallet {
+
+        @Test
+        @DisplayName("성공 시 내 지갑 정보를 반환한다")
+        void getWallet_success() throws Exception {
+            // given
+            Principal principal = new UsernamePasswordAuthenticationToken(
+                    1L,
+                    null,
+                    List.of()
+            );
+
+            WalletResponse response = new WalletResponse(
+                    5000L,
+                    10L
+            );
+
+            given(userService.getWallet(1L))
+                    .willReturn(response);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/users/me/wallet")
+                            .principal(principal))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").isEmpty())
+                    .andExpect(jsonPath("$.data.gold").value(5000L))
+                    .andExpect(jsonPath("$.data.gem").value(10L));
+
+            then(userService)
+                    .should()
+                    .getWallet(1L);
         }
     }
 

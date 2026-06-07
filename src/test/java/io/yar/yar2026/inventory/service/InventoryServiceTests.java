@@ -435,8 +435,8 @@ class InventoryServiceTest {
     private User userOf(Long userId) {
         User user = User.builder()
                 .email("test@test.com")
-                .password("testertestertest")
-                .nickname("김승균")
+                .password("encoded-password")
+                .nickname("테스터")
                 .build();
 
         ReflectionTestUtils.setField(user, "userId", userId);
