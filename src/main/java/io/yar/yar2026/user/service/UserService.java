@@ -104,6 +104,14 @@ public class UserService {
         return ProfileResponse.from(profile);
     }
 
+    @Transactional
+    public WalletResponse getWallet(Long userId) {
+        User user = requireExists(userId);
+        Wallet wallet = getOrCreateWallet(user);
+
+        return WalletResponse.from(wallet);
+    }
+
     public User requireExists(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
