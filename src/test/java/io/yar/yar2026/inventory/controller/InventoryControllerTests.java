@@ -4,6 +4,8 @@ import io.yar.yar2026.common.config.security.JwtAuthenticationFilter;
 import io.yar.yar2026.common.config.security.TokenProvider;
 import io.yar.yar2026.inventory.dto.ItemPickupRequest;
 import io.yar.yar2026.inventory.dto.UserItemResponse;
+import io.yar.yar2026.inventory.exception.NotEnoughItemQuantityException;
+import io.yar.yar2026.inventory.exception.UserItemNotFoundException;
 import io.yar.yar2026.inventory.service.InventoryService;
 import io.yar.yar2026.item.exception.ItemNotFoundException;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +26,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -262,6 +266,107 @@ class InventoryControllerTest {
                     .andExpect(jsonPath("$.data").isEmpty());
 
             then(inventoryService).should().pickup(eq(1L), any(ItemPickupRequest.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("아이템 버리기")
+    class Discard {
+
+        @Test
+        @DisplayName("성공 시 아이템을 버리고 성공 응답을 반환한다")
+        void discard_success() throws Exception {
+            // given
+            Principal principal = new UsernamePasswordAuthenticationToken(
+                    1L,
+                    null,
+                    List.of()
+            );
+
+            // when & then
+            mockMvc.perform(delete("/api/v1/users/me/inventory/{userItemId}/discard", 10L)
+                            .principal(principal)
+                            .queryParam("quantity", "2"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("아이템을 버렸습니다."))
+                    .andExpect(jsonPath("$.data").isEmpty());
+
+            then(inventoryService).should().discard(1L, 10L, 2);
+        }
+
+        @Test
+        @DisplayName("quantity가 1보다 작으면 400 응답을 반환한다")
+        void discard_fail_when_quantity_is_less_than_one() throws Exception {
+            // given
+            Principal principal = new UsernamePasswordAuthenticationToken(
+                    1L,
+                    null,
+                    List.of()
+            );
+
+            // when & then
+            mockMvc.perform(delete("/api/v1/users/me/inventory/{userItemId}/discard", 10L)
+                            .principal(principal)
+                            .queryParam("quantity", "0"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.message").value("수량은 1 이상이어야 합니다."))
+                    .andExpect(jsonPath("$.data").isEmpty());
+
+            then(inventoryService).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("보유 아이템이 없으면 404 응답을 반환한다")
+        void discard_fail_when_user_item_not_found() throws Exception {
+            // given
+            Principal principal = new UsernamePasswordAuthenticationToken(
+                    1L,
+                    null,
+                    List.of()
+            );
+
+            willThrow(new UserItemNotFoundException())
+                    .given(inventoryService)
+                    .discard(1L, 999L, 1);
+
+            // when & then
+            mockMvc.perform(delete("/api/v1/users/me/inventory/{userItemId}/discard", 999L)
+                            .principal(principal)
+                            .queryParam("quantity", "1"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.message").value("아이템을 찾을 수 없습니다."))
+                    .andExpect(jsonPath("$.data").isEmpty());
+
+            then(inventoryService).should().discard(1L, 999L, 1);
+        }
+
+        @Test
+        @DisplayName("아이템 수량이 부족하면 400 응답을 반환한다")
+        void discard_fail_when_quantity_is_not_enough() throws Exception {
+            // given
+            Principal principal = new UsernamePasswordAuthenticationToken(
+                    1L,
+                    null,
+                    List.of()
+            );
+
+            willThrow(new NotEnoughItemQuantityException())
+                    .given(inventoryService)
+                    .discard(1L, 10L, 3);
+
+            // when & then
+            mockMvc.perform(delete("/api/v1/users/me/inventory/{userItemId}/discard", 10L)
+                            .principal(principal)
+                            .queryParam("quantity", "3"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.message").value("아이템 수량이 부족합니다."))
+                    .andExpect(jsonPath("$.data").isEmpty());
+
+            then(inventoryService).should().discard(1L, 10L, 3);
         }
     }
 }

@@ -1,6 +1,7 @@
 package io.yar.yar2026.inventory.domain;
 
 import io.yar.yar2026.common.BaseEntity;
+import io.yar.yar2026.inventory.exception.NotEnoughItemQuantityException;
 import io.yar.yar2026.item.domain.Item;
 import io.yar.yar2026.user.domain.User;
 import jakarta.persistence.Column;
@@ -95,6 +96,20 @@ public class UserItem extends BaseEntity {
     // 수량 감소
     public void decreaseQuantity(int quantity) {
         this.quantity -= quantity;
+    }
+
+    // 아이템 버리기
+    public void discardQuantity(int discardQuantity) {
+        if (discardQuantity < 1 || this.quantity < discardQuantity) {
+            throw new NotEnoughItemQuantityException();
+        }
+
+        this.quantity -= discardQuantity;
+
+        if (this.quantity == 0) {
+            this.status = UserItemStatus.DESTROYED;
+            this.destroyedAt = LocalDateTime.now();
+        }
     }
 
 }
