@@ -24,7 +24,9 @@ public enum ErrorCode {
     ENHANCEMENT_MAX_GRADE(HttpStatus.BAD_REQUEST, "이미 최대 강화 단계입니다."),
     NPC_NOT_FOUND(HttpStatus.NOT_FOUND, "NPC를 찾을 수 없습니다."),
     SHOP_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "상점 아이템을 찾을 수 없습니다."),
-    FRIEND_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "친구 요청을 찾을 수 없습니다.");
+    FRIEND_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "친구 요청을 찾을 수 없습니다."),
+    SELF_FRIEND_REQUEST(HttpStatus.BAD_REQUEST, "자기 자신에게 친구 요청을 보낼 수 없습니다."),
+    FRIEND_REQUEST_DUPLICATED(HttpStatus.CONFLICT, "이미 친구 관계입니다. / 이미 보낸 친구 요청이 있습니다.");
 
     private final HttpStatus status;
     private final String message;
