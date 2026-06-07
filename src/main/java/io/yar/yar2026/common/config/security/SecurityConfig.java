@@ -48,7 +48,8 @@ public class SecurityConfig {
                                 "/api/v1/items",
                                 "/api/v1/items/**",
                                 "/api/v1/npcs",
-                                "/api/v1/npcs/**"
+                                "/api/v1/npcs/**",
+                                "/api/v1/enhancement/miracle-time"
                         ).permitAll()
                         .anyRequest().authenticated()
                )

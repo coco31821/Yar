@@ -2,6 +2,7 @@ package io.yar.yar2026.enhancement.service;
 
 import io.yar.yar2026.enhancement.domain.EnhancementRule;
 import io.yar.yar2026.enhancement.dto.EnhancementInfoResponse;
+import io.yar.yar2026.enhancement.dto.MiracleTimeResponse;
 import io.yar.yar2026.enhancement.exception.EnhancementMaxGradeException;
 import io.yar.yar2026.enhancement.exception.EnhancementRuleNotFoundException;
 import io.yar.yar2026.enhancement.exception.ItemNotEnhanceableException;
@@ -85,5 +86,20 @@ public class EnhancementService {
             case EPIC -> 15;
             case LEGENDARY -> 20;
         };
+    }
+
+    // 미라클 타임
+    public MiracleTimeResponse getMiracleTime() {
+        LocalDateTime now = LocalDateTime.now();
+
+        return miracleTimeEventRepository.findActiveEvent(now)
+                .map(event -> new MiracleTimeResponse(
+                        true,
+                        event.getNoticeMessage()
+                ))
+                .orElseGet(() -> new MiracleTimeResponse(
+                        false,
+                        "현재 진행 중인 미라클 타임이 없습니다."
+                ));
     }
 }
