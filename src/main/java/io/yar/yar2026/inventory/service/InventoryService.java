@@ -5,6 +5,7 @@ import io.yar.yar2026.inventory.domain.UserItemObtainedFrom;
 import io.yar.yar2026.inventory.domain.UserItemStatus;
 import io.yar.yar2026.inventory.dto.ItemPickupRequest;
 import io.yar.yar2026.inventory.dto.UserItemResponse;
+import io.yar.yar2026.inventory.exception.UserItemNotFoundException;
 import io.yar.yar2026.inventory.repository.UserItemRepository;
 import io.yar.yar2026.item.domain.Item;
 import io.yar.yar2026.item.exception.ItemNotFoundException;
@@ -71,4 +72,19 @@ public class InventoryService {
                 .map(UserItemResponse::from)
                 .toList();
     }
+
+    // 아이템 버리기
+    @Transactional
+    public void discard(Long userId, Long userItemId, int quantity) {
+        UserItem userItem = userItemRepository
+                .findByUserItemIdAndUser_UserIdAndStatusIn(
+                        userItemId,
+                        userId,
+                        List.of(UserItemStatus.OWNED, UserItemStatus.EQUIPPED)
+                )
+                .orElseThrow(UserItemNotFoundException::new);
+
+        userItem.discardQuantity(quantity);
+    }
+
 }

@@ -21,4 +21,11 @@ public interface UserItemRepository extends JpaRepository<UserItem, Long> {
             int enhancementGrade,
             UserItemStatus status
     );
+
+    // 내가 가진 아이템인지 확인하는 메서드
+    Optional<UserItem> findByUserItemIdAndUser_UserIdAndStatusIn(
+            Long userItemId,
+            Long userId,
+            Collection<UserItemStatus> statuses
+    );
 }

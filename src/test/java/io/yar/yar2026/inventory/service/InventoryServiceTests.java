@@ -5,6 +5,8 @@ import io.yar.yar2026.inventory.domain.UserItemObtainedFrom;
 import io.yar.yar2026.inventory.domain.UserItemStatus;
 import io.yar.yar2026.inventory.dto.ItemPickupRequest;
 import io.yar.yar2026.inventory.dto.UserItemResponse;
+import io.yar.yar2026.inventory.exception.NotEnoughItemQuantityException;
+import io.yar.yar2026.inventory.exception.UserItemNotFoundException;
 import io.yar.yar2026.inventory.repository.UserItemRepository;
 import io.yar.yar2026.item.domain.Item;
 import io.yar.yar2026.item.domain.ItemGrade;
@@ -223,6 +225,210 @@ class InventoryServiceTest {
             then(userService).should().requireExists(1L);
             then(itemRepository).should().findById(999L);
             then(userItemRepository).should(never()).save(any(UserItem.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("아이템 버리기")
+    class Discard {
+
+        @Test
+        @DisplayName("보유 수량보다 적게 버리면 수량만 감소한다")
+        void discard_success_when_quantity_remains() {
+            // given
+            User user = userOf(1L);
+            Item item = itemOf(
+                    1L,
+                    "potion_hp_001",
+                    "HP 포션",
+                    ItemType.CONSUMABLE,
+                    ItemGrade.COMMON,
+                    "HP를 50 회복합니다.",
+                    30,
+                    10
+            );
+            UserItem userItem = userItemOf(
+                    10L,
+                    user,
+                    item,
+                    5,
+                    UserItemStatus.OWNED
+            );
+            List<UserItemStatus> visibleStatuses = List.of(
+                    UserItemStatus.OWNED,
+                    UserItemStatus.EQUIPPED
+            );
+
+            given(userItemRepository.findByUserItemIdAndUser_UserIdAndStatusIn(
+                    10L,
+                    1L,
+                    visibleStatuses
+            )).willReturn(Optional.of(userItem));
+
+            // when
+            inventoryService.discard(1L, 10L, 2);
+
+            // then
+            assertThat(userItem.getQuantity()).isEqualTo(3);
+            assertThat(userItem.getStatus()).isEqualTo(UserItemStatus.OWNED);
+            assertThat(userItem.getDestroyedAt()).isNull();
+
+            then(userItemRepository).should()
+                    .findByUserItemIdAndUser_UserIdAndStatusIn(10L, 1L, visibleStatuses);
+        }
+
+        @Test
+        @DisplayName("보유 수량을 전부 버리면 DESTROYED 상태로 변경한다")
+        void discard_success_when_quantity_becomes_zero() {
+            // given
+            User user = userOf(1L);
+            Item item = itemOf(
+                    1L,
+                    "potion_hp_001",
+                    "HP 포션",
+                    ItemType.CONSUMABLE,
+                    ItemGrade.COMMON,
+                    "HP를 50 회복합니다.",
+                    30,
+                    10
+            );
+            UserItem userItem = userItemOf(
+                    10L,
+                    user,
+                    item,
+                    2,
+                    UserItemStatus.OWNED
+            );
+            List<UserItemStatus> visibleStatuses = List.of(
+                    UserItemStatus.OWNED,
+                    UserItemStatus.EQUIPPED
+            );
+
+            given(userItemRepository.findByUserItemIdAndUser_UserIdAndStatusIn(
+                    10L,
+                    1L,
+                    visibleStatuses
+            )).willReturn(Optional.of(userItem));
+
+            // when
+            inventoryService.discard(1L, 10L, 2);
+
+            // then
+            assertThat(userItem.getQuantity()).isZero();
+            assertThat(userItem.getStatus()).isEqualTo(UserItemStatus.DESTROYED);
+            assertThat(userItem.getDestroyedAt()).isNotNull();
+
+            then(userItemRepository).should()
+                    .findByUserItemIdAndUser_UserIdAndStatusIn(10L, 1L, visibleStatuses);
+        }
+
+        @Test
+        @DisplayName("보유 아이템이 없으면 UserItemNotFoundException이 발생한다")
+        void discard_fail_when_user_item_not_found() {
+            // given
+            List<UserItemStatus> visibleStatuses = List.of(
+                    UserItemStatus.OWNED,
+                    UserItemStatus.EQUIPPED
+            );
+
+            given(userItemRepository.findByUserItemIdAndUser_UserIdAndStatusIn(
+                    999L,
+                    1L,
+                    visibleStatuses
+            )).willReturn(Optional.empty());
+
+            // when
+            assertThatThrownBy(() -> inventoryService.discard(1L, 999L, 1))
+                    .isInstanceOf(UserItemNotFoundException.class)
+                    .hasMessage("아이템을 찾을 수 없습니다.");
+
+            // then
+            then(userItemRepository).should()
+                    .findByUserItemIdAndUser_UserIdAndStatusIn(999L, 1L, visibleStatuses);
+        }
+
+        @Test
+        @DisplayName("보유 수량보다 많이 버리면 NotEnoughItemQuantityException이 발생한다")
+        void discard_fail_when_quantity_is_not_enough() {
+            // given
+            User user = userOf(1L);
+            Item item = itemOf(
+                    1L,
+                    "potion_hp_001",
+                    "HP 포션",
+                    ItemType.CONSUMABLE,
+                    ItemGrade.COMMON,
+                    "HP를 50 회복합니다.",
+                    30,
+                    10
+            );
+            UserItem userItem = userItemOf(
+                    10L,
+                    user,
+                    item,
+                    2,
+                    UserItemStatus.OWNED
+            );
+            List<UserItemStatus> visibleStatuses = List.of(
+                    UserItemStatus.OWNED,
+                    UserItemStatus.EQUIPPED
+            );
+
+            given(userItemRepository.findByUserItemIdAndUser_UserIdAndStatusIn(
+                    10L,
+                    1L,
+                    visibleStatuses
+            )).willReturn(Optional.of(userItem));
+
+            // when & then
+            assertThatThrownBy(() -> inventoryService.discard(1L, 10L, 3))
+                    .isInstanceOf(NotEnoughItemQuantityException.class)
+                    .hasMessage("아이템 수량이 부족합니다.");
+
+            assertThat(userItem.getQuantity()).isEqualTo(2);
+            assertThat(userItem.getStatus()).isEqualTo(UserItemStatus.OWNED);
+        }
+
+        @Test
+        @DisplayName("버릴 수량이 1보다 작으면 NotEnoughItemQuantityException이 발생한다")
+        void discard_fail_when_quantity_is_less_than_one() {
+            // given
+            User user = userOf(1L);
+            Item item = itemOf(
+                    1L,
+                    "potion_hp_001",
+                    "HP 포션",
+                    ItemType.CONSUMABLE,
+                    ItemGrade.COMMON,
+                    "HP를 50 회복합니다.",
+                    30,
+                    10
+            );
+            UserItem userItem = userItemOf(
+                    10L,
+                    user,
+                    item,
+                    2,
+                    UserItemStatus.OWNED
+            );
+            List<UserItemStatus> visibleStatuses = List.of(
+                    UserItemStatus.OWNED,
+                    UserItemStatus.EQUIPPED
+            );
+
+            given(userItemRepository.findByUserItemIdAndUser_UserIdAndStatusIn(
+                    10L,
+                    1L,
+                    visibleStatuses
+            )).willReturn(Optional.of(userItem));
+
+            // when & then
+            assertThatThrownBy(() -> inventoryService.discard(1L, 10L, 0))
+                    .isInstanceOf(NotEnoughItemQuantityException.class)
+                    .hasMessage("아이템 수량이 부족합니다.");
+
+            assertThat(userItem.getQuantity()).isEqualTo(2);
+            assertThat(userItem.getStatus()).isEqualTo(UserItemStatus.OWNED);
         }
     }
 

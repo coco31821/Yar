@@ -19,7 +19,8 @@ public enum ErrorCode {
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 Refresh Token입니다."),
 
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "아이템을 찾을 수 없습니다."),
-    USER_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "보유 아이템을 찾을 수 없습니다."),
+    USER_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "아이템을 찾을 수 없습니다."),
+    NOT_ENOUGH_ITEM_QUANTITY(HttpStatus.BAD_REQUEST, "아이템 수량이 부족합니다."),
     NOT_ENOUGH_GOLD(HttpStatus.BAD_REQUEST, "골드가 부족합니다."),
     ENHANCEMENT_MAX_GRADE(HttpStatus.BAD_REQUEST, "이미 최대 강화 단계입니다."),
     NPC_NOT_FOUND(HttpStatus.NOT_FOUND, "NPC를 찾을 수 없습니다."),
