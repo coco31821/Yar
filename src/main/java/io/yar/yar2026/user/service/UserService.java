@@ -96,6 +96,14 @@ public class UserService {
         );
     }
 
+    @Transactional
+    public ProfileResponse getProfile(Long userId) {
+        User user = requireExists(userId);
+        Profile profile = getOrCreateProfile(user);
+
+        return ProfileResponse.from(profile);
+    }
+
     public User requireExists(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);

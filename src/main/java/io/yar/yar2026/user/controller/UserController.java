@@ -1,6 +1,7 @@
 package io.yar.yar2026.user.controller;
 
 import io.yar.yar2026.common.dto.ApiResponse;
+import io.yar.yar2026.profile.dto.ProfileResponse;
 import io.yar.yar2026.user.dto.SignupRequest;
 import io.yar.yar2026.user.dto.UserCreateResponse;
 import io.yar.yar2026.user.dto.UserGameDataResponse;
@@ -41,6 +42,15 @@ public class UserController {
         Long userId = (Long) authentication.getPrincipal();
 
         UserGameDataResponse response = userService.getMyData(userId);
+
+        return ApiResponse.ok(response, null);
+    }
+
+    @GetMapping("/me/profile")
+    public ApiResponse<ProfileResponse> getProfile(Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+
+        ProfileResponse response = userService.getProfile(userId);
 
         return ApiResponse.ok(response, null);
     }
