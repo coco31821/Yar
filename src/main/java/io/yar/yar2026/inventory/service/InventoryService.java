@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -24,6 +26,7 @@ public class InventoryService {
     private final ItemRepository itemRepository;
     private final UserItemRepository userItemRepository;
 
+    // 아이템 획득
     @Transactional
     public UserItemResponse pickup(Long userId, ItemPickupRequest request) {
         User user = userService.requireExists(userId);
@@ -43,5 +46,18 @@ public class InventoryService {
         UserItem savedUserItem = userItemRepository.save(userItem);
 
         return UserItemResponse.from(savedUserItem);
+    }
+
+    // 유저 인벤토리 조회
+    public List<UserItemResponse> getInventory(Long userId) {
+        userService.requireExists(userId);
+
+        return userItemRepository.findAllByUser_UserIdAndStatusIn(
+                        userId,
+                        List.of(UserItemStatus.OWNED, UserItemStatus.EQUIPPED)
+                )
+                .stream()
+                .map(UserItemResponse::from)
+                .toList();
     }
 }

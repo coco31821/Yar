@@ -23,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,6 +48,92 @@ class InventoryServiceTest {
 
     @Mock
     private UserItemRepository userItemRepository;
+
+    @Nested
+    @DisplayName("인벤토리 조회")
+    class GetInventory {
+
+        @Test
+        @DisplayName("보유 중인 아이템을 응답 DTO 목록으로 반환한다")
+        void getInventory_success() {
+            // given
+            User user = userOf(1L);
+
+            Item sword = itemOf(
+                    1L,
+                    "sword_001",
+                    "연습용 검",
+                    ItemType.WEAPON,
+                    ItemGrade.COMMON,
+                    "초보자용 검입니다.",
+                    100,
+                    50
+            );
+
+            Item potion = itemOf(
+                    2L,
+                    "potion_hp_001",
+                    "HP 포션",
+                    ItemType.CONSUMABLE,
+                    ItemGrade.COMMON,
+                    "HP를 50 회복합니다.",
+                    30,
+                    10
+            );
+
+            UserItem swordUserItem = userItemOf(
+                    10L,
+                    user,
+                    sword,
+                    1,
+                    UserItemStatus.OWNED
+            );
+
+            UserItem potionUserItem = userItemOf(
+                    11L,
+                    user,
+                    potion,
+                    5,
+                    UserItemStatus.EQUIPPED
+            );
+
+            List<UserItemStatus> visibleStatuses = List.of(
+                    UserItemStatus.OWNED,
+                    UserItemStatus.EQUIPPED
+            );
+
+            given(userService.requireExists(1L))
+                    .willReturn(user);
+
+            given(userItemRepository.findAllByUser_UserIdAndStatusIn(1L, visibleStatuses))
+                    .willReturn(List.of(swordUserItem, potionUserItem));
+
+            // when
+            List<UserItemResponse> response = inventoryService.getInventory(1L);
+
+            // then
+            assertThat(response).hasSize(2);
+            assertThat(response.get(0).userItemId()).isEqualTo(10L);
+            assertThat(response.get(0).itemId()).isEqualTo(1L);
+            assertThat(response.get(0).rId()).isEqualTo("sword_001");
+            assertThat(response.get(0).itemName()).isEqualTo("연습용 검");
+            assertThat(response.get(0).itemType()).isEqualTo("WEAPON");
+            assertThat(response.get(0).itemGrade()).isEqualTo("COMMON");
+            assertThat(response.get(0).description()).isEqualTo("초보자용 검입니다.");
+            assertThat(response.get(0).price()).isEqualTo(100);
+            assertThat(response.get(0).sellPrice()).isEqualTo(50);
+            assertThat(response.get(0).quantity()).isEqualTo(1);
+            assertThat(response.get(0).equipped()).isFalse();
+            assertThat(response.get(0).acquiredAt()).isNotBlank();
+            assertThat(response.get(1).userItemId()).isEqualTo(11L);
+            assertThat(response.get(1).quantity()).isEqualTo(5);
+            assertThat(response.get(1).equipped()).isTrue();
+
+            then(userService).should().requireExists(1L);
+            then(userItemRepository).should()
+                    .findAllByUser_UserIdAndStatusIn(1L, visibleStatuses);
+        }
+    }
 
     @Nested
     @DisplayName("아이템 획득")
@@ -174,5 +261,26 @@ class InventoryServiceTest {
         ReflectionTestUtils.setField(item, "itemId", itemId);
 
         return item;
+    }
+
+    private UserItem userItemOf(
+            Long userItemId,
+            User user,
+            Item item,
+            int quantity,
+            UserItemStatus status
+    ) {
+        UserItem userItem = UserItem.builder()
+                .user(user)
+                .item(item)
+                .quantity(quantity)
+                .status(status)
+                .enhancementGrade(0)
+                .obtainedFrom(UserItemObtainedFrom.PICKUP)
+                .build();
+
+        ReflectionTestUtils.setField(userItem, "userItemId", userItemId);
+
+        return userItem;
     }
 }

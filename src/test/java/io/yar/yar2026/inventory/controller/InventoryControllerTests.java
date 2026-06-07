@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -48,6 +49,80 @@ class InventoryControllerTest {
 
     @MockitoBean
     private TokenProvider tokenProvider;
+
+    @Nested
+    @DisplayName("인벤토리 조회")
+    class GetInventory {
+
+        @Test
+        @DisplayName("성공 시 보유 아이템 목록을 반환한다")
+        void getInventory_success() throws Exception {
+            // given
+            Principal principal = new UsernamePasswordAuthenticationToken(
+                    1L,
+                    null,
+                    List.of()
+            );
+
+            List<UserItemResponse> response = List.of(
+                    new UserItemResponse(
+                            10L,
+                            1L,
+                            "sword_001",
+                            "연습용 검",
+                            "WEAPON",
+                            "COMMON",
+                            "초보자용 검입니다.",
+                            100,
+                            50,
+                            1,
+                            false,
+                            "2026-06-07T10:00:00"
+                    ),
+                    new UserItemResponse(
+                            11L,
+                            2L,
+                            "potion_hp_001",
+                            "HP 포션",
+                            "CONSUMABLE",
+                            "COMMON",
+                            "HP를 50 회복합니다.",
+                            30,
+                            10,
+                            5,
+                            false,
+                            "2026-06-07T10:05:00"
+                    )
+            );
+
+            given(inventoryService.getInventory(1L))
+                    .willReturn(response);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/users/me/inventory")
+                            .principal(principal))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").isEmpty())
+                    .andExpect(jsonPath("$.data[0].userItemId").value(10L))
+                    .andExpect(jsonPath("$.data[0].itemId").value(1L))
+                    .andExpect(jsonPath("$.data[0].rId").value("sword_001"))
+                    .andExpect(jsonPath("$.data[0].itemName").value("연습용 검"))
+                    .andExpect(jsonPath("$.data[0].itemType").value("WEAPON"))
+                    .andExpect(jsonPath("$.data[0].itemGrade").value("COMMON"))
+                    .andExpect(jsonPath("$.data[0].description").value("초보자용 검입니다."))
+                    .andExpect(jsonPath("$.data[0].price").value(100))
+                    .andExpect(jsonPath("$.data[0].sellPrice").value(50))
+                    .andExpect(jsonPath("$.data[0].quantity").value(1))
+                    .andExpect(jsonPath("$.data[0].equipped").value(false))
+                    .andExpect(jsonPath("$.data[0].acquiredAt").value("2026-06-07T10:00:00"))
+                    .andExpect(jsonPath("$.data[1].userItemId").value(11L))
+                    .andExpect(jsonPath("$.data[1].itemId").value(2L))
+                    .andExpect(jsonPath("$.data[1].quantity").value(5));
+
+            then(inventoryService).should().getInventory(1L);
+        }
+    }
 
     @Nested
     @DisplayName("아이템 획득")

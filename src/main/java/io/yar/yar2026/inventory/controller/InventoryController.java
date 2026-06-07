@@ -7,10 +7,9 @@ import io.yar.yar2026.inventory.service.InventoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/users/me/inventory")
@@ -19,6 +18,7 @@ public class InventoryController {
 
     private final InventoryService inventoryService;
 
+    // 아이템 획득
     @PostMapping("/pickup")
     public ApiResponse<UserItemResponse> pickup(
             Authentication authentication,
@@ -29,5 +29,17 @@ public class InventoryController {
         UserItemResponse response = inventoryService.pickup(userId, request);
 
         return ApiResponse.ok(response, "아이템을 획득했습니다.");
+    }
+
+    // 인벤토리 조회
+    @GetMapping
+    public ApiResponse<List<UserItemResponse>> getInventory(
+            Authentication authentication
+    ) {
+        Long userId = (Long) authentication.getPrincipal();
+
+        List<UserItemResponse> response = inventoryService.getInventory(userId);
+
+        return ApiResponse.ok(response, null);
     }
 }
