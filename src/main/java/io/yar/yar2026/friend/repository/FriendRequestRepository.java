@@ -1,9 +1,12 @@
 package io.yar.yar2026.friend.repository;
 
 import io.yar.yar2026.friend.domain.FriendRequest;
+import io.yar.yar2026.friend.domain.FriendRequestStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.util.List;
 
 public interface FriendRequestRepository extends JpaRepository<FriendRequest, Long> {
 
@@ -16,5 +19,15 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, Lo
     boolean existsBetweenUsers(
             @Param("userId") Long userId,
             @Param("targetUserId") Long targetUserId
+    );
+
+    List<FriendRequest> findAllByToUser_UserIdAndStatusOrderByCreatedAtDesc(
+            Long userId,
+            FriendRequestStatus status
+    );
+
+    List<FriendRequest> findAllByFromUser_UserIdAndStatusOrderByCreatedAtDesc(
+            Long userId,
+            FriendRequestStatus status
     );
 }
