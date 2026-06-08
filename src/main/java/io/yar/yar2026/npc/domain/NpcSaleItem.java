@@ -1,6 +1,7 @@
 package io.yar.yar2026.npc.domain;
 
 import io.yar.yar2026.common.BaseEntity;
+import io.yar.yar2026.inventory.exception.NotEnoughItemQuantityException;
 import io.yar.yar2026.item.domain.Item;
 import io.yar.yar2026.wallet.domain.CurrencyType;
 import jakarta.persistence.Column;
@@ -89,5 +90,23 @@ public class NpcSaleItem extends BaseEntity {
         this.active = active == null || active;
         this.saleStartAt = saleStartAt;
         this.saleEndAt = saleEndAt;
+    }
+
+    public boolean isOnSale(LocalDateTime now) {
+        return active
+                && (saleStartAt == null || !saleStartAt.isAfter(now))
+                && (saleEndAt == null || !saleEndAt.isBefore(now));
+    }
+
+    public void decreaseStock(int quantity) {
+        if (stockQuantity == null) {
+            return;
+        }
+
+        if (stockQuantity < quantity) {
+            throw new NotEnoughItemQuantityException();
+        }
+
+        stockQuantity -= quantity;
     }
 }
