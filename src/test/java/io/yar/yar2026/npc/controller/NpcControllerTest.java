@@ -1,9 +1,12 @@
 package io.yar.yar2026.npc.controller;
 
+import io.yar.yar2026.item.domain.ItemGrade;
+import io.yar.yar2026.item.domain.ItemType;
 import io.yar.yar2026.common.config.security.JwtAuthenticationFilter;
 import io.yar.yar2026.common.config.security.TokenProvider;
 import io.yar.yar2026.npc.NpcService;
 import io.yar.yar2026.npc.dto.NpcResponse;
+import io.yar.yar2026.npc.dto.NpcShopItemResponse;
 import io.yar.yar2026.npc.exception.NpcNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -54,7 +57,20 @@ class NpcControllerTest {
                             "상인",
                             "마을의 잡화 상인입니다.",
                             "VILLAGE",
-                            true
+                            true,
+                            List.of(new NpcShopItemResponse(
+                                    10L,
+                                    100L,
+                                    "item_potion",
+                                    "체력 물약",
+                                    ItemType.CONSUMABLE,
+                                    ItemGrade.COMMON,
+                                    "체력을 회복합니다.",
+                                    80,
+                                    50,
+                                    20,
+                                    1
+                            ))
                     ),
                     new NpcResponse(
                             2L,
@@ -62,7 +78,8 @@ class NpcControllerTest {
                             "대장장이",
                             "무기를 강화해주는 대장장이입니다.",
                             "FORGE",
-                            true
+                            true,
+                            List.of()
                     )
             );
 
@@ -81,8 +98,19 @@ class NpcControllerTest {
                     .andExpect(jsonPath("$.data[0].description").value("마을의 잡화 상인입니다."))
                     .andExpect(jsonPath("$.data[0].locationKey").value("VILLAGE"))
                     .andExpect(jsonPath("$.data[0].active").value(true))
+                    .andExpect(jsonPath("$.data[0].shopItems[0].npcItemId").value(10L))
+                    .andExpect(jsonPath("$.data[0].shopItems[0].itemId").value(100L))
+                    .andExpect(jsonPath("$.data[0].shopItems[0].rId").value("item_potion"))
+                    .andExpect(jsonPath("$.data[0].shopItems[0].itemName").value("체력 물약"))
+                    .andExpect(jsonPath("$.data[0].shopItems[0].itemType").value("CONSUMABLE"))
+                    .andExpect(jsonPath("$.data[0].shopItems[0].itemGrade").value("COMMON"))
+                    .andExpect(jsonPath("$.data[0].shopItems[0].price").value(80))
+                    .andExpect(jsonPath("$.data[0].shopItems[0].sellPrice").value(50))
+                    .andExpect(jsonPath("$.data[0].shopItems[0].quantity").value(20))
+                    .andExpect(jsonPath("$.data[0].shopItems[0].sortOrder").value(1))
                     .andExpect(jsonPath("$.data[1].npcId").value(2L))
-                    .andExpect(jsonPath("$.data[1].rId").value("npc_002"));
+                    .andExpect(jsonPath("$.data[1].rId").value("npc_002"))
+                    .andExpect(jsonPath("$.data[1].shopItems").isEmpty());
 
             then(npcService).should().getNpcs();
         }
@@ -102,7 +130,20 @@ class NpcControllerTest {
                     "상인",
                     "마을의 잡화 상인입니다.",
                     "VILLAGE",
-                    true
+                    true,
+                    List.of(new NpcShopItemResponse(
+                            10L,
+                            100L,
+                            "item_potion",
+                            "체력 물약",
+                            ItemType.CONSUMABLE,
+                            ItemGrade.COMMON,
+                            "체력을 회복합니다.",
+                            80,
+                            50,
+                            20,
+                            1
+                    ))
             );
 
             given(npcService.getNpc(1L))
@@ -119,7 +160,17 @@ class NpcControllerTest {
                     .andExpect(jsonPath("$.data.name").value("상인"))
                     .andExpect(jsonPath("$.data.description").value("마을의 잡화 상인입니다."))
                     .andExpect(jsonPath("$.data.locationKey").value("VILLAGE"))
-                    .andExpect(jsonPath("$.data.active").value(true));
+                    .andExpect(jsonPath("$.data.active").value(true))
+                    .andExpect(jsonPath("$.data.shopItems[0].npcItemId").value(10L))
+                    .andExpect(jsonPath("$.data.shopItems[0].itemId").value(100L))
+                    .andExpect(jsonPath("$.data.shopItems[0].rId").value("item_potion"))
+                    .andExpect(jsonPath("$.data.shopItems[0].itemName").value("체력 물약"))
+                    .andExpect(jsonPath("$.data.shopItems[0].itemType").value("CONSUMABLE"))
+                    .andExpect(jsonPath("$.data.shopItems[0].itemGrade").value("COMMON"))
+                    .andExpect(jsonPath("$.data.shopItems[0].price").value(80))
+                    .andExpect(jsonPath("$.data.shopItems[0].sellPrice").value(50))
+                    .andExpect(jsonPath("$.data.shopItems[0].quantity").value(20))
+                    .andExpect(jsonPath("$.data.shopItems[0].sortOrder").value(1));
 
             then(npcService).should().getNpc(1L);
         }
