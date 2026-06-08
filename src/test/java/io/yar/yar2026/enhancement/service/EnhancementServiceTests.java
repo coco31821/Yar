@@ -6,7 +6,6 @@ import io.yar.yar2026.enhancement.domain.MiracleTimeEvent;
 import io.yar.yar2026.enhancement.dto.EnhancementInfoResponse;
 import io.yar.yar2026.enhancement.dto.EnhancementResultResponse;
 import io.yar.yar2026.enhancement.dto.MiracleTimeResponse;
-import io.yar.yar2026.enhancement.exception.EnhancementMaxGradeException;
 import io.yar.yar2026.enhancement.exception.EnhancementRuleNotFoundException;
 import io.yar.yar2026.enhancement.exception.ItemNotEnhanceableException;
 import io.yar.yar2026.enhancement.repository.EnhancementRuleRepository;
@@ -194,8 +193,8 @@ class EnhancementServiceTest {
         }
 
         @Test
-        @DisplayName("COMMON 아이템이 +5면 EnhancementMaxGradeException이 발생한다")
-        void getEnhancementInfo_fail_when_common_item_is_already_max_grade() {
+        @DisplayName("COMMON 아이템이 +5면 최대 강화 상태를 반환한다")
+        void getEnhancementInfo_success_when_common_item_is_already_max_grade() {
             // given
             User user = userOf(1L);
             Item item = itemOf(
@@ -217,13 +216,25 @@ class EnhancementServiceTest {
                     visibleStatuses
             )).willReturn(Optional.of(userItem));
 
-            // when & then
-            assertThatThrownBy(() -> enhancementService.getEnhancementInfo(1L, 10L))
-                    .isInstanceOf(EnhancementMaxGradeException.class)
-                    .hasMessage("이미 최대 강화 등급입니다.");
+            given(miracleTimeEventRepository.findActiveEvent(any(LocalDateTime.class)))
+                    .willReturn(Optional.empty());
+
+            // when
+            EnhancementInfoResponse response = enhancementService.getEnhancementInfo(1L, 10L);
+
+            // then
+            assertThat(response.userItemId()).isEqualTo(10L);
+            assertThat(response.currentGrade()).isEqualTo(5);
+            assertThat(response.maxGrade()).isEqualTo(5);
+            assertThat(response.maxed()).isTrue();
+            assertThat(response.successRate()).isZero();
+            assertThat(response.failRate()).isZero();
+            assertThat(response.destroyRate()).isZero();
+            assertThat(response.goldCost()).isZero();
+            assertThat(response.miracleTime()).isFalse();
 
             then(enhancementRuleRepository).shouldHaveNoInteractions();
-            then(miracleTimeEventRepository).shouldHaveNoInteractions();
+            then(miracleTimeEventRepository).should().findActiveEvent(any(LocalDateTime.class));
         }
 
         @Test
@@ -424,6 +435,51 @@ class EnhancementServiceTest {
 
             then(userItemRepository).should().save(any(UserItem.class));
             then(itemEnhancementHistoryRepository).should().save(any(ItemEnhancementHistory.class));
+        }
+
+        @Test
+        @DisplayName("이미 최대 강화 등급이면 골드를 쓰지 않고 MAXED 결과를 반환한다")
+        void enhance_success_when_item_is_already_max_grade() {
+            // given
+            User user = userOf(1L);
+            Item item = itemOf(
+                    1L,
+                    "wooden_bow",
+                    "나무 활",
+                    ItemType.WEAPON,
+                    ItemGrade.COMMON
+            );
+            UserItem userItem = userItemOf(10L, user, item, 5);
+            Wallet wallet = Wallet.builder()
+                    .user(user)
+                    .gold(100)
+                    .gem(0)
+                    .build();
+
+            given(userItemRepository.findByUserItemIdAndUser_UserIdAndStatusIn(
+                    10L,
+                    1L,
+                    visibleStatuses()
+            )).willReturn(Optional.of(userItem));
+            given(walletRepository.findByUser_UserId(1L))
+                    .willReturn(Optional.of(wallet));
+
+            // when
+            EnhancementResultResponse response = enhancementService.enhance(1L, 10L);
+
+            // then
+            assertThat(response.outcome()).isEqualTo("MAXED");
+            assertThat(response.miracleTimeApplied()).isFalse();
+            assertThat(response.gradeBefore()).isEqualTo(5);
+            assertThat(response.gradeAfter()).isEqualTo(5);
+            assertThat(response.goldSpent()).isZero();
+            assertThat(response.remainingGold()).isEqualTo(100);
+            assertThat(response.userItem().enhancementGrade()).isEqualTo(5);
+            assertThat(userItem.getEnhancementGrade()).isEqualTo(5);
+
+            then(enhancementRuleRepository).shouldHaveNoInteractions();
+            then(miracleTimeEventRepository).shouldHaveNoInteractions();
+            then(itemEnhancementHistoryRepository).shouldHaveNoInteractions();
         }
 
         @Test
