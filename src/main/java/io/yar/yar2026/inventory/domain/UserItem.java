@@ -112,4 +112,15 @@ public class UserItem extends BaseEntity {
         }
     }
 
+    // 강화 결과 반영 메서드 성공,실패
+    public void enhanceTo(int enhancementGrade) {
+        this.enhancementGrade = enhancementGrade;
+        this.enhancementCount += 1;
+    }
+    public void destroy() {
+        this.status = UserItemStatus.DESTROYED;
+        this.destroyedAt = LocalDateTime.now();
+        this.quantity = 0;
+    }
+
 }

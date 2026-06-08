@@ -20,8 +20,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
 @Entity
 @Getter
 @Table(name = "item_enhancement_histories")
@@ -54,14 +52,14 @@ public class ItemEnhancementHistory extends BaseEntity {
     @Column(nullable = false)
     private EnhancementOutcome outcome;
 
-    @Column(nullable = false, precision = 5, scale = 2)
-    private BigDecimal successRate;
+    @Column(nullable = false)
+    private int successRate;
 
-    @Column(nullable = false, precision = 5, scale = 2)
-    private BigDecimal failRate;
+    @Column(nullable = false)
+    private int failRate;
 
-    @Column(nullable = false, precision = 5, scale = 2)
-    private BigDecimal destroyRate;
+    @Column(nullable = false)
+    private int destroyRate;
 
     @Column(nullable = false)
     private int goldSpent;
@@ -81,9 +79,9 @@ public class ItemEnhancementHistory extends BaseEntity {
             int beforeGrade,
             int afterGrade,
             EnhancementOutcome outcome,
-            BigDecimal successRate,
-            BigDecimal failRate,
-            BigDecimal destroyRate,
+            int successRate,
+            int failRate,
+            int destroyRate,
             int goldSpent,
             boolean miracleApplied,
             MiracleTimeEvent miracleTimeEvent

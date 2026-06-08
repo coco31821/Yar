@@ -2,6 +2,7 @@ package io.yar.yar2026.wallet.domain;
 
 import io.yar.yar2026.common.BaseEntity;
 import io.yar.yar2026.user.domain.User;
+import io.yar.yar2026.wallet.exception.NotEnoughGoldException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -49,5 +50,13 @@ public class Wallet extends BaseEntity {
                 .gold(5000)
                 .gem(10)
                 .build();
+    }
+
+    public void useGold(int amount) {
+        if (this.gold < amount) {
+            throw new NotEnoughGoldException();
+        }
+
+        this.gold -= amount;
     }
 }

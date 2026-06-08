@@ -12,8 +12,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
 @Entity
 @Getter
 @Table(name = "enhancement_rules")
@@ -30,14 +28,14 @@ public class EnhancementRule extends BaseEntity {
     @Column(nullable = false)
     private int toGrade;
 
-    @Column(nullable = false, precision = 5, scale = 2)
-    private BigDecimal successRate;
+    @Column(nullable = false)
+    private int successRate;
 
-    @Column(nullable = false, precision = 5, scale = 2)
-    private BigDecimal failRate;
+    @Column(nullable = false)
+    private int failRate;
 
-    @Column(nullable = false, precision = 5, scale = 2)
-    private BigDecimal destroyRate;
+    @Column(nullable = false)
+    private int destroyRate;
 
     @Column(nullable = false)
     private int goldCost;
@@ -49,9 +47,9 @@ public class EnhancementRule extends BaseEntity {
     public EnhancementRule(
             int fromGrade,
             int toGrade,
-            BigDecimal successRate,
-            BigDecimal failRate,
-            BigDecimal destroyRate,
+            int successRate,
+            int failRate,
+            int destroyRate,
             int goldCost,
             Boolean active
     ) {
