@@ -7,6 +7,7 @@ import io.yar.yar2026.npc.NpcService;
 import io.yar.yar2026.npc.dto.NpcPurchaseRequest;
 import io.yar.yar2026.npc.dto.NpcPurchaseResponse;
 import io.yar.yar2026.npc.exception.ShopItemNotFoundException;
+import io.yar.yar2026.wallet.dto.WalletResponse;
 import io.yar.yar2026.wallet.exception.NotEnoughGoldException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -66,14 +67,8 @@ class NpcPurchaseControllerTest {
             );
             NpcPurchaseRequest request = new NpcPurchaseRequest(2);
             NpcPurchaseResponse response = new NpcPurchaseResponse(
-                    1L,
-                    100L,
-                    10L,
-                    "체력 물약",
-                    2,
-                    100,
-                    400L,
-                    List.of(new UserItemResponse(
+                    new WalletResponse(400L, 10L),
+                    new UserItemResponse(
                             200L,
                             10L,
                             "potion_hp_001",
@@ -87,7 +82,7 @@ class NpcPurchaseControllerTest {
                             false,
                             0,
                             "2026-06-08T11:00:00"
-                    ))
+                    )
             );
 
             given(npcService.purchase(eq(1L), eq(1L), eq(100L), any(NpcPurchaseRequest.class)))
@@ -100,16 +95,13 @@ class NpcPurchaseControllerTest {
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.message").value("아이템을 구매했습니다."))
-                    .andExpect(jsonPath("$.data.npcId").value(1L))
-                    .andExpect(jsonPath("$.data.npcItemId").value(100L))
-                    .andExpect(jsonPath("$.data.itemId").value(10L))
-                    .andExpect(jsonPath("$.data.itemName").value("체력 물약"))
-                    .andExpect(jsonPath("$.data.quantity").value(2))
-                    .andExpect(jsonPath("$.data.goldSpent").value(100))
-                    .andExpect(jsonPath("$.data.remainingGold").value(400L))
-                    .andExpect(jsonPath("$.data.userItems[0].userItemId").value(200L))
-                    .andExpect(jsonPath("$.data.userItems[0].quantity").value(7));
+                    .andExpect(jsonPath("$.message").value("구매가 완료되었습니다."))
+                    .andExpect(jsonPath("$.data.wallet.gold").value(400L))
+                    .andExpect(jsonPath("$.data.wallet.gem").value(10L))
+                    .andExpect(jsonPath("$.data.acquiredItem.userItemId").value(200L))
+                    .andExpect(jsonPath("$.data.acquiredItem.itemId").value(10L))
+                    .andExpect(jsonPath("$.data.acquiredItem.itemName").value("체력 물약"))
+                    .andExpect(jsonPath("$.data.acquiredItem.quantity").value(7));
 
             then(npcService).should().purchase(eq(1L), eq(1L), eq(100L), any(NpcPurchaseRequest.class));
         }
@@ -124,14 +116,8 @@ class NpcPurchaseControllerTest {
                     List.of()
             );
             NpcPurchaseResponse response = new NpcPurchaseResponse(
-                    1L,
-                    100L,
-                    10L,
-                    "체력 물약",
-                    1,
-                    50,
-                    450L,
-                    List.of()
+                    new WalletResponse(450L, 10L),
+                    null
             );
 
             given(npcService.purchase(1L, 1L, 100L, null))
@@ -142,8 +128,7 @@ class NpcPurchaseControllerTest {
                             .principal(principal))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data.quantity").value(1))
-                    .andExpect(jsonPath("$.data.goldSpent").value(50));
+                    .andExpect(jsonPath("$.data.wallet.gold").value(450L));
 
             then(npcService).should().purchase(1L, 1L, 100L, null);
         }

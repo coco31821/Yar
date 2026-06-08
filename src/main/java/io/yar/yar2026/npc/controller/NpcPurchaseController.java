@@ -31,6 +31,6 @@ public class NpcPurchaseController {
 
         NpcPurchaseResponse response = npcService.purchase(userId, npcId, npcItemId, request);
 
-        return ApiResponse.ok(response, "아이템을 구매했습니다.");
+        return ApiResponse.ok(response, "구매가 완료되었습니다.");
     }
 }
