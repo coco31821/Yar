@@ -7,7 +7,10 @@ use yar;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
-INSERT IGNORE INTO items (
+DELETE FROM npc_sale_items;
+DELETE FROM npcs;
+
+INSERT INTO items (
     item_id,
     r_id,
     item_name,
@@ -19,19 +22,23 @@ INSERT IGNORE INTO items (
     created_at,
     updated_at
 ) VALUES
-      (1, 'sword_001', '초보자 검', 'WEAPON', 'COMMON', '초보자용 검입니다.', 100, 50, NOW(), NOW()),
-      (2, 'sword_002', '강철 검', 'WEAPON', 'UNCOMMON', '단단한 강철로 만든 검입니다.', 300, 150, NOW(), NOW()),
-      (3, 'wooden_bow', '나무 활', 'WEAPON', 'COMMON', '초보자용 활입니다.', 200, 100, NOW(), NOW()),
-      (4, 'staff_001', '수련 지팡이', 'WEAPON', 'COMMON', '마법 수련용 지팡이입니다.', 180, 90, NOW(), NOW()),
-      (5, 'armor_001', '가죽 갑옷', 'ARMOR', 'COMMON', '가벼운 가죽 갑옷입니다.', 150, 75, NOW(), NOW()),
-      (6, 'armor_002', '철 갑옷', 'ARMOR', 'UNCOMMON', '방어력이 좋은 철 갑옷입니다.', 400, 200, NOW(), NOW()),
-      (7, 'potion_hp_001', 'HP 포션', 'CONSUMABLE', 'COMMON', 'HP를 50 회복합니다.', 30, 10, NOW(), NOW()),
-      (8, 'potion_mp_001', 'MP 포션', 'CONSUMABLE', 'COMMON', 'MP를 30 회복합니다.', 30, 10, NOW(), NOW()),
-      (9, 'gem_green_001', '초록 보석', 'ETC', 'RARE', '특별한 기운이 담긴 보석입니다.', 500, 250, NOW(), NOW()),
-      (10, 'ticket_miracle_001', '미라클 티켓', 'ETC', 'EPIC', '미라클 타임 이벤트를 기념하는 티켓입니다.', 1000, 500, NOW(), NOW());
+      (1, 'sword_bronze_001', '청동 검', 'WEAPON', 'COMMON', '처음 들기 좋은 가벼운 검입니다.', 120, 60, NOW(), NOW()),
+      (2, 'bow_hunter_001', '사냥꾼 활', 'WEAPON', 'UNCOMMON', '먼 거리의 적을 노릴 수 있는 활입니다.', 260, 130, NOW(), NOW()),
+      (3, 'armor_leather_001', '가죽 갑옷', 'ARMOR', 'COMMON', '움직이기 편한 기본 갑옷입니다.', 180, 90, NOW(), NOW()),
+      (4, 'potion_hp_001', '체력 물약', 'CONSUMABLE', 'COMMON', '체력을 조금 회복합니다.', 50, 15, NOW(), NOW()),
+      (5, 'stone_lucky_001', '행운의 돌', 'ETC', 'RARE', '묘하게 좋은 일이 생길 것 같은 돌입니다.', 500, 250, NOW(), NOW())
+ON DUPLICATE KEY UPDATE
+      r_id = VALUES(r_id),
+      item_name = VALUES(item_name),
+      item_type = VALUES(item_type),
+      item_grade = VALUES(item_grade),
+      description = VALUES(description),
+      price = VALUES(price),
+      sell_price = VALUES(sell_price),
+      updated_at = NOW();
 
 
-INSERT IGNORE INTO npcs (
+INSERT INTO npcs (
     npc_id,
     r_id,
     name,
@@ -41,11 +48,13 @@ INSERT IGNORE INTO npcs (
     created_at,
     updated_at
 ) VALUES
-      (1, 'npc_shop_001', '상점 NPC', '아이템을 판매하는 NPC입니다.', 'TOWN_CENTER', TRUE, NOW(), NOW()),
-      (2, 'npc_enhance_001', '강화 NPC', '아이템 강화를 진행하는 NPC입니다.', 'TOWN_FORGE', TRUE, NOW(), NOW()),
-      (3, 'npc_random_reward_001', '확률형 아이템 NPC', '확률형 아이템 기능용 NPC입니다. 현재 사용하지 않습니다.', 'TOWN_EVENT', FALSE, NOW(), NOW());
+      (1, 'npc_general_store_001', '마을 잡화상', '여행에 필요한 기본 물품을 판매합니다.', 'village_center', TRUE, NOW(), NOW()),
+      (2, 'npc_weapon_shop_001', '무기 상인', '초보자용 무기를 판매합니다.', 'weapon_shop', TRUE, NOW(), NOW()),
+      (3, 'npc_armor_shop_001', '방어구 상인', '튼튼한 방어구를 판매합니다.', 'armor_shop', TRUE, NOW(), NOW()),
+      (4, 'npc_potion_shop_001', '연금술사', '회복 물약과 소모품을 판매합니다.', 'alchemy_shop', TRUE, NOW(), NOW()),
+      (5, 'npc_rare_shop_001', '수상한 상인', '희귀한 물건을 조용히 거래합니다.', 'back_alley', TRUE, NOW(), NOW());
 
-INSERT IGNORE INTO npc_sale_items (
+INSERT INTO npc_sale_items (
     npc_sale_item_id,
     npc_id,
     item_id,
@@ -59,11 +68,11 @@ INSERT IGNORE INTO npc_sale_items (
     created_at,
     updated_at
 ) VALUES
-      (1, 1, 1, 100, 'GOLD', NULL, 1, TRUE, NULL, NULL, NOW(), NOW()),
-      (2, 1, 3, 200, 'GOLD', NULL, 2, TRUE, NULL, NULL, NOW(), NOW()),
-      (3, 1, 5, 150, 'GOLD', NULL, 3, TRUE, NULL, NULL, NOW(), NOW()),
-      (4, 1, 7, 30, 'GOLD', NULL, 4, TRUE, NULL, NULL, NOW(), NOW()),
-      (5, 1, 8, 30, 'GOLD', NULL, 5, TRUE, NULL, NULL, NOW(), NOW());
+      (1, 1, 4, 45, 'GOLD', 30, 1, TRUE, NULL, NULL, NOW(), NOW()),
+      (2, 2, 1, 120, 'GOLD', NULL, 1, TRUE, NULL, NULL, NOW(), NOW()),
+      (3, 2, 2, 250, 'GOLD', NULL, 2, TRUE, NULL, NULL, NOW(), NOW()),
+      (4, 3, 3, 170, 'GOLD', NULL, 1, TRUE, NULL, NULL, NOW(), NOW()),
+      (5, 5, 5, 480, 'GOLD', 5, 1, TRUE, NULL, NULL, NOW(), NOW());
 
 INSERT IGNORE INTO enhancement_rules (
     enhancement_rule_id,
