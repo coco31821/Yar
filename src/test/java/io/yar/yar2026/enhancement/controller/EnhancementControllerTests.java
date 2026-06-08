@@ -3,8 +3,10 @@ package io.yar.yar2026.enhancement.controller;
 import io.yar.yar2026.common.config.security.JwtAuthenticationFilter;
 import io.yar.yar2026.common.config.security.TokenProvider;
 import io.yar.yar2026.enhancement.dto.EnhancementInfoResponse;
+import io.yar.yar2026.enhancement.dto.EnhancementResultResponse;
 import io.yar.yar2026.enhancement.exception.ItemNotEnhanceableException;
 import io.yar.yar2026.enhancement.service.EnhancementService;
+import io.yar.yar2026.inventory.dto.UserItemResponse;
 import io.yar.yar2026.inventory.exception.UserItemNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,6 +24,7 @@ import java.util.List;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -136,6 +139,66 @@ class EnhancementControllerTest {
                     .andExpect(jsonPath("$.data").isEmpty());
 
             then(enhancementService).should().getEnhancementInfo(1L, 10L);
+        }
+    }
+
+    @Nested
+    @DisplayName("강화 실행")
+    class Enhance {
+
+        @Test
+        @DisplayName("성공 시 강화 결과를 반환한다")
+        void enhance_success() throws Exception {
+            // given
+            Principal principal = new UsernamePasswordAuthenticationToken(
+                    1L,
+                    null,
+                    List.of()
+            );
+            UserItemResponse userItem = new UserItemResponse(
+                    10L,
+                    1L,
+                    "wooden_bow",
+                    "나무 활",
+                    "WEAPON",
+                    "COMMON",
+                    "설명",
+                    100,
+                    50,
+                    1,
+                    false,
+                    1,
+                    "2026-06-07T10:00:00"
+            );
+            EnhancementResultResponse response = new EnhancementResultResponse(
+                    "SUCCESS",
+                    false,
+                    0,
+                    1,
+                    10,
+                    90,
+                    userItem
+            );
+
+            given(enhancementService.enhance(1L, 10L))
+                    .willReturn(response);
+
+            // when & then
+            mockMvc.perform(post("/api/v1/users/me/inventory/{userItemId}/enhance", 10L)
+                            .principal(principal))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("강화가 완료되었습니다."))
+                    .andExpect(jsonPath("$.data.outcome").value("SUCCESS"))
+                    .andExpect(jsonPath("$.data.miracleTimeApplied").value(false))
+                    .andExpect(jsonPath("$.data.gradeBefore").value(0))
+                    .andExpect(jsonPath("$.data.gradeAfter").value(1))
+                    .andExpect(jsonPath("$.data.goldSpent").value(10))
+                    .andExpect(jsonPath("$.data.remainingGold").value(90))
+                    .andExpect(jsonPath("$.data.userItem.userItemId").value(10L))
+                    .andExpect(jsonPath("$.data.userItem.enhancementGrade").value(1));
+
+            then(enhancementService).should().enhance(1L, 10L);
         }
     }
 }
