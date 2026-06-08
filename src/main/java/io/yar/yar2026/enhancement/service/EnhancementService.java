@@ -57,7 +57,7 @@ public class EnhancementService {
         int currentGrade = userItem.getEnhancementGrade();
         int maxGrade = getMaxGrade(userItem.getItem().getItemGrade());
 
-        if (currentGrade >= maxGrade) {
+        if (currentGrade > maxGrade) {
             throw new EnhancementMaxGradeException();
         }
 
