@@ -239,7 +239,7 @@ public class EnhancementService {
 
             if (userItem.getQuantity() == 0) {
                 userItem.destroy();
-            }ㄱ
+            }
         }
 
         return new EnhancementApplyResult(userItem, gradeBefore);
