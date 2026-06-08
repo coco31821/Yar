@@ -7,7 +7,6 @@ import io.yar.yar2026.enhancement.domain.MiracleTimeEvent;
 import io.yar.yar2026.enhancement.dto.EnhancementInfoResponse;
 import io.yar.yar2026.enhancement.dto.EnhancementResultResponse;
 import io.yar.yar2026.enhancement.dto.MiracleTimeResponse;
-import io.yar.yar2026.enhancement.exception.EnhancementMaxGradeException;
 import io.yar.yar2026.enhancement.exception.EnhancementRuleNotFoundException;
 import io.yar.yar2026.enhancement.exception.ItemNotEnhanceableException;
 import io.yar.yar2026.enhancement.repository.ItemEnhancementHistoryRepository;
@@ -57,8 +56,22 @@ public class EnhancementService {
         int currentGrade = userItem.getEnhancementGrade();
         int maxGrade = getMaxGrade(userItem.getItem().getItemGrade());
 
-        if (currentGrade > maxGrade) {
-            throw new EnhancementMaxGradeException();
+        if (currentGrade >= maxGrade) {
+            boolean miracleTime = miracleTimeEventRepository
+                    .findActiveEvent(LocalDateTime.now())
+                    .isPresent();
+
+            return new EnhancementInfoResponse(
+                    userItem.getUserItemId(),
+                    currentGrade,
+                    maxGrade,
+                    true,
+                    0,
+                    0,
+                    0,
+                    0,
+                    miracleTime
+            );
         }
 
         EnhancementRule rule = enhancementRuleRepository
@@ -125,13 +138,21 @@ public class EnhancementService {
 
         int gradeBefore = userItem.getEnhancementGrade();
         int maxGrade = getMaxGrade(userItem.getItem().getItemGrade());
+        Wallet wallet = getWallet(userId);
 
         if (gradeBefore >= maxGrade) {
-            throw new EnhancementMaxGradeException();
+            return new EnhancementResultResponse(
+                    "MAXED",
+                    false,
+                    gradeBefore,
+                    gradeBefore,
+                    0,
+                    wallet.getGold(),
+                    UserItemResponse.from(userItem)
+            );
         }
 
         EnhancementRule rule = getEnhancementRule(gradeBefore);
-        Wallet wallet = getWallet(userId);
 
         wallet.useGold(rule.getGoldCost());
 
