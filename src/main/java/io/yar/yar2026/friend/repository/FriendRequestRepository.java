@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface FriendRequestRepository extends JpaRepository<FriendRequest, Long> {
 
@@ -40,6 +41,19 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, Lo
             """)
     List<FriendRequest> findAllByUserIdAndStatusOrderByCreatedAtDesc(
             @Param("userId") Long userId,
+            @Param("status") FriendRequestStatus status
+    );
+
+    @Query("""
+            select fr
+            from FriendRequest fr
+            where ((fr.fromUser.userId = :userId and fr.toUser.userId = :friendUserId)
+                or (fr.fromUser.userId = :friendUserId and fr.toUser.userId = :userId))
+              and fr.status = :status
+            """)
+    Optional<FriendRequest> findByUserIdAndFriendUserIdAndStatus(
+            @Param("userId") Long userId,
+            @Param("friendUserId") Long friendUserId,
             @Param("status") FriendRequestStatus status
     );
 }

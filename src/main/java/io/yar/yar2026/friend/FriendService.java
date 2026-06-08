@@ -148,4 +148,17 @@ public class FriendService {
                 .map(friendRequest -> FriendRequestResponse.fromFriend(friendRequest, userId))
                 .toList();
     }
+
+    @Transactional
+    public void deleteFriend(Long userId, Long friendUserId) {
+        FriendRequest friendRequest = friendRequestRepository
+                .findByUserIdAndFriendUserIdAndStatus(
+                        userId,
+                        friendUserId,
+                        FriendRequestStatus.ACCEPTED
+                )
+                .orElseThrow(() -> new InvalidFriendRequestException("친구 관계가 아닙니다."));
+
+        friendRequestRepository.delete(friendRequest);
+    }
 }
