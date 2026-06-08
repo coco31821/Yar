@@ -104,4 +104,16 @@ public class FriendController {
 
         return ApiResponse.ok(null, "친구 요청을 취소했습니다.");
     }
+
+    @DeleteMapping("/{friendUserId}")
+    public ApiResponse<Void> deleteFriend(
+            Authentication authentication,
+            @PathVariable Long friendUserId
+    ) {
+        Long userId = (Long) authentication.getPrincipal();
+
+        friendService.deleteFriend(userId, friendUserId);
+
+        return ApiResponse.ok(null, "친구를 삭제했습니다.");
+    }
 }

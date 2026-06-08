@@ -410,6 +410,61 @@ class FriendServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("친구 삭제")
+    class DeleteFriend {
+
+        @Test
+        @DisplayName("ACCEPTED 상태의 친구 관계를 삭제한다")
+        void deleteFriend_success() {
+            // given
+            Long userId = 1L;
+            Long friendUserId = 2L;
+            User user = userOf(userId, "내유저");
+            User friend = userOf(friendUserId, "친구유저");
+            FriendRequest friendRequest = friendRequestOf(10L, user, friend);
+            friendRequest.accept();
+
+            given(friendRequestRepository.findByUserIdAndFriendUserIdAndStatus(
+                    userId,
+                    friendUserId,
+                    FriendRequestStatus.ACCEPTED
+            )).willReturn(Optional.of(friendRequest));
+
+            // when
+            friendService.deleteFriend(userId, friendUserId);
+
+            // then
+            then(friendRequestRepository).should().findByUserIdAndFriendUserIdAndStatus(
+                    userId,
+                    friendUserId,
+                    FriendRequestStatus.ACCEPTED
+            );
+            then(friendRequestRepository).should().delete(friendRequest);
+        }
+
+        @Test
+        @DisplayName("ACCEPTED 친구 관계가 아니면 InvalidFriendRequestException이 발생한다")
+        void deleteFriend_fail_when_not_friend() {
+            // given
+            Long userId = 1L;
+            Long friendUserId = 2L;
+
+            given(friendRequestRepository.findByUserIdAndFriendUserIdAndStatus(
+                    userId,
+                    friendUserId,
+                    FriendRequestStatus.ACCEPTED
+            )).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> friendService.deleteFriend(userId, friendUserId))
+                    .isInstanceOf(InvalidFriendRequestException.class)
+                    .hasMessage("친구 관계가 아닙니다.");
+
+            then(friendRequestRepository).should(never()).delete(any(FriendRequest.class));
+        }
+    }
+
     private User userOf(Long userId, String nickname) {
         User user = User.builder()
                 .email("user" + userId + "@test.com")

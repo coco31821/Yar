@@ -377,4 +377,51 @@ class FriendControllerTest {
             then(friendService).should().getFriends(userId);
         }
     }
+
+    @Nested
+    @DisplayName("친구 삭제")
+    class DeleteFriend {
+
+        @Test
+        @DisplayName("친구 삭제 성공 시 응답을 반환한다")
+        void deleteFriend_success() throws Exception {
+            // given
+            Long userId = 1L;
+            Long friendUserId = 2L;
+
+            // when & then
+            mockMvc.perform(
+                            delete("/api/v1/users/me/friends/{friendUserId}", friendUserId)
+                                    .principal(new UsernamePasswordAuthenticationToken(userId, null))
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("친구를 삭제했습니다."))
+                    .andExpect(jsonPath("$.data").isEmpty());
+
+            then(friendService).should().deleteFriend(userId, friendUserId);
+        }
+
+        @Test
+        @DisplayName("친구 관계가 아니면 400 응답을 반환한다")
+        void deleteFriend_fail_when_not_friend() throws Exception {
+            // given
+            Long userId = 1L;
+            Long friendUserId = 2L;
+
+            willThrow(new InvalidFriendRequestException("친구 관계가 아닙니다."))
+                    .given(friendService)
+                    .deleteFriend(userId, friendUserId);
+
+            // when & then
+            mockMvc.perform(
+                            delete("/api/v1/users/me/friends/{friendUserId}", friendUserId)
+                                    .principal(new UsernamePasswordAuthenticationToken(userId, null))
+                    )
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.message").value("친구 관계가 아닙니다."))
+                    .andExpect(jsonPath("$.data").isEmpty());
+        }
+    }
 }
