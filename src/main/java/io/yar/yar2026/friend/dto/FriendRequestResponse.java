@@ -38,4 +38,19 @@ public record FriendRequestResponse(
                 friendRequest.getToUser().getNickname()
         );
     }
+
+    public static FriendRequestResponse fromFriend(FriendRequest friendRequest, Long userId) {
+        String nickname = friendRequest.getFromUser().getUserId().equals(userId)
+                ? friendRequest.getToUser().getNickname()
+                : friendRequest.getFromUser().getNickname();
+
+        return new FriendRequestResponse(
+                friendRequest.getFriendRequestId(),
+                friendRequest.getFromUser().getUserId(),
+                friendRequest.getToUser().getUserId(),
+                friendRequest.getStatus(),
+                friendRequest.getCreatedAt(),
+                nickname
+        );
+    }
 }

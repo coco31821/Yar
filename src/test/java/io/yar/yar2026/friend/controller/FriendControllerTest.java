@@ -338,4 +338,43 @@ class FriendControllerTest {
                     .andExpect(jsonPath("$.data").isEmpty());
         }
     }
+
+    @Nested
+    @DisplayName("친구 목록 조회")
+    class GetFriends {
+
+        @Test
+        @DisplayName("친구 목록 조회 성공 시 응답을 반환한다")
+        void getFriends_success() throws Exception {
+            // given
+            Long userId = 1L;
+            FriendRequestResponse response = new FriendRequestResponse(
+                    10L,
+                    userId,
+                    2L,
+                    FriendRequestStatus.ACCEPTED,
+                    LocalDateTime.of(2026, 6, 7, 10, 0),
+                    "친구유저"
+            );
+
+            given(friendService.getFriends(userId))
+                    .willReturn(List.of(response));
+
+            // when & then
+            mockMvc.perform(
+                            get("/api/v1/users/me/friends")
+                                    .principal(new UsernamePasswordAuthenticationToken(userId, null))
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").isEmpty())
+                    .andExpect(jsonPath("$.data[0].friendRequestId").value(10L))
+                    .andExpect(jsonPath("$.data[0].fromUserId").value(userId))
+                    .andExpect(jsonPath("$.data[0].toUserId").value(2L))
+                    .andExpect(jsonPath("$.data[0].status").value("ACCEPTED"))
+                    .andExpect(jsonPath("$.data[0].nickname").value("친구유저"));
+
+            then(friendService).should().getFriends(userId);
+        }
+    }
 }
