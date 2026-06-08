@@ -81,6 +81,7 @@ class InventoryControllerTest {
                             50,
                             1,
                             false,
+                            0,
                             "2026-06-07T10:00:00"
                     ),
                     new UserItemResponse(
@@ -95,6 +96,7 @@ class InventoryControllerTest {
                             10,
                             5,
                             false,
+                            0,
                             "2026-06-07T10:05:00"
                     )
             );
@@ -156,6 +158,7 @@ class InventoryControllerTest {
                     10,
                     3,
                     false,
+                    0,
                     "2026-06-07T10:00:00"
             );
 

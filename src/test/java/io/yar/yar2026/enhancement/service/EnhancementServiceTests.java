@@ -1,12 +1,16 @@
 package io.yar.yar2026.enhancement.service;
 
+import io.yar.yar2026.enhancement.domain.ItemEnhancementHistory;
 import io.yar.yar2026.enhancement.domain.EnhancementRule;
 import io.yar.yar2026.enhancement.domain.MiracleTimeEvent;
 import io.yar.yar2026.enhancement.dto.EnhancementInfoResponse;
+import io.yar.yar2026.enhancement.dto.EnhancementResultResponse;
+import io.yar.yar2026.enhancement.dto.MiracleTimeResponse;
 import io.yar.yar2026.enhancement.exception.EnhancementMaxGradeException;
 import io.yar.yar2026.enhancement.exception.EnhancementRuleNotFoundException;
 import io.yar.yar2026.enhancement.exception.ItemNotEnhanceableException;
 import io.yar.yar2026.enhancement.repository.EnhancementRuleRepository;
+import io.yar.yar2026.enhancement.repository.ItemEnhancementHistoryRepository;
 import io.yar.yar2026.enhancement.repository.MiracleTimeEventRepository;
 import io.yar.yar2026.inventory.domain.UserItem;
 import io.yar.yar2026.inventory.domain.UserItemObtainedFrom;
@@ -17,10 +21,13 @@ import io.yar.yar2026.item.domain.Item;
 import io.yar.yar2026.item.domain.ItemGrade;
 import io.yar.yar2026.item.domain.ItemType;
 import io.yar.yar2026.user.domain.User;
+import io.yar.yar2026.wallet.domain.Wallet;
+import io.yar.yar2026.wallet.repository.WalletRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -52,6 +59,12 @@ class EnhancementServiceTest {
 
     @Mock
     private MiracleTimeEventRepository miracleTimeEventRepository;
+
+    @Mock
+    private WalletRepository walletRepository;
+
+    @Mock
+    private ItemEnhancementHistoryRepository itemEnhancementHistoryRepository;
 
     @Nested
     @DisplayName("강화창 정보 조회")
@@ -299,6 +312,291 @@ class EnhancementServiceTest {
 
             then(miracleTimeEventRepository).shouldHaveNoInteractions();
         }
+
+        @Test
+        @DisplayName("활성 미라클 타임이 있으면 true와 안내 문구를 반환한다")
+        void getMiracleTime_success_when_active_event_exists() {
+            // given
+            MiracleTimeEvent event = MiracleTimeEvent.builder()
+                    .name("테스트 미라클 타임")
+                    .startAt(LocalDateTime.now().minusHours(1))
+                    .endAt(LocalDateTime.now().plusHours(1))
+                    .bonusGradeStep(2)
+                    .noticeMessage("미라클 타임 진행 중! 강화 성공 시 등급이 2배로 상승합니다.")
+                    .active(true)
+                    .build();
+
+            given(miracleTimeEventRepository.findActiveEvent(any(LocalDateTime.class)))
+                    .willReturn(Optional.of(event));
+
+            // when
+            MiracleTimeResponse response = enhancementService.getMiracleTime();
+
+            // then
+            assertThat(response.miracleTime()).isTrue();
+            assertThat(response.message()).isEqualTo("미라클 타임 진행 중! 강화 성공 시 등급이 2배로 상승합니다.");
+
+            then(miracleTimeEventRepository).should().findActiveEvent(any(LocalDateTime.class));
+        }
+
+        @Test
+        @DisplayName("활성 미라클 타임이 없으면 false와 기본 안내 문구를 반환한다")
+        void getMiracleTime_success_when_active_event_not_exists() {
+            // given
+            given(miracleTimeEventRepository.findActiveEvent(any(LocalDateTime.class)))
+                    .willReturn(Optional.empty());
+
+            // when
+            MiracleTimeResponse response = enhancementService.getMiracleTime();
+
+            // then
+            assertThat(response.miracleTime()).isFalse();
+            assertThat(response.message()).isEqualTo("현재 진행 중인 미라클 타임이 없습니다.");
+
+            then(miracleTimeEventRepository).should().findActiveEvent(any(LocalDateTime.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("강화 실행")
+    class Enhance {
+
+        @Test
+        @DisplayName("성공 시 스택에서 아이템 1개만 다음 강화 등급으로 이동한다")
+        void enhance_success_moves_only_one_item_from_stack() {
+            // given
+            User user = userOf(1L);
+            Item item = itemOf(
+                    1L,
+                    "wooden_bow",
+                    "나무 활",
+                    ItemType.WEAPON,
+                    ItemGrade.COMMON
+            );
+            UserItem sourceUserItem = userItemOf(10L, user, item, 0, 2);
+            Wallet wallet = Wallet.builder()
+                    .user(user)
+                    .gold(100)
+                    .gem(0)
+                    .build();
+            EnhancementRule rule = EnhancementRule.builder()
+                    .fromGrade(0)
+                    .toGrade(1)
+                    .successRate(100)
+                    .failRate(0)
+                    .destroyRate(0)
+                    .goldCost(10)
+                    .active(true)
+                    .build();
+
+            given(userItemRepository.findByUserItemIdAndUser_UserIdAndStatusIn(
+                    10L,
+                    1L,
+                    visibleStatuses()
+            )).willReturn(Optional.of(sourceUserItem));
+            given(enhancementRuleRepository.findByFromGradeAndActiveTrue(0))
+                    .willReturn(Optional.of(rule));
+            given(walletRepository.findByUser_UserId(1L))
+                    .willReturn(Optional.of(wallet));
+            given(miracleTimeEventRepository.findActiveEvent(any(LocalDateTime.class)))
+                    .willReturn(Optional.empty());
+            given(userItemRepository.findByUser_UserIdAndItem_ItemIdAndEnhancementGradeAndStatus(
+                    1L,
+                    1L,
+                    1,
+                    UserItemStatus.OWNED
+            )).willReturn(Optional.empty());
+            given(userItemRepository.save(any(UserItem.class)))
+                    .willAnswer(invocation -> invocation.getArgument(0));
+
+            // when
+            EnhancementResultResponse response = enhancementService.enhance(1L, 10L);
+
+            // then
+            assertThat(response.outcome()).isEqualTo("SUCCESS");
+            assertThat(response.gradeBefore()).isEqualTo(0);
+            assertThat(response.gradeAfter()).isEqualTo(1);
+            assertThat(response.goldSpent()).isEqualTo(10);
+            assertThat(response.remainingGold()).isEqualTo(90);
+            assertThat(response.userItem().enhancementGrade()).isEqualTo(1);
+            assertThat(sourceUserItem.getQuantity()).isEqualTo(1);
+            assertThat(sourceUserItem.getEnhancementGrade()).isEqualTo(0);
+
+            then(userItemRepository).should().save(any(UserItem.class));
+            then(itemEnhancementHistoryRepository).should().save(any(ItemEnhancementHistory.class));
+        }
+
+        @Test
+        @DisplayName("실패 시 골드만 사용하고 강화 등급은 유지된다")
+        void enhance_fail_keeps_grade() {
+            // given
+            User user = userOf(1L);
+            Item item = itemOf(
+                    1L,
+                    "wooden_bow",
+                    "나무 활",
+                    ItemType.WEAPON,
+                    ItemGrade.COMMON
+            );
+            UserItem userItem = userItemOf(10L, user, item, 0);
+            Wallet wallet = Wallet.builder()
+                    .user(user)
+                    .gold(100)
+                    .gem(0)
+                    .build();
+            EnhancementRule rule = EnhancementRule.builder()
+                    .fromGrade(0)
+                    .toGrade(1)
+                    .successRate(0)
+                    .failRate(100)
+                    .destroyRate(0)
+                    .goldCost(10)
+                    .active(true)
+                    .build();
+
+            given(userItemRepository.findByUserItemIdAndUser_UserIdAndStatusIn(
+                    10L,
+                    1L,
+                    visibleStatuses()
+            )).willReturn(Optional.of(userItem));
+            given(enhancementRuleRepository.findByFromGradeAndActiveTrue(0))
+                    .willReturn(Optional.of(rule));
+            given(walletRepository.findByUser_UserId(1L))
+                    .willReturn(Optional.of(wallet));
+            given(miracleTimeEventRepository.findActiveEvent(any(LocalDateTime.class)))
+                    .willReturn(Optional.empty());
+
+            // when
+            EnhancementResultResponse response = enhancementService.enhance(1L, 10L);
+
+            // then
+            assertThat(response.outcome()).isEqualTo("FAIL");
+            assertThat(response.gradeBefore()).isEqualTo(0);
+            assertThat(response.gradeAfter()).isEqualTo(0);
+            assertThat(response.remainingGold()).isEqualTo(90);
+            assertThat(userItem.getQuantity()).isEqualTo(1);
+            assertThat(userItem.getEnhancementGrade()).isEqualTo(0);
+
+            then(userItemRepository).should(never()).save(any(UserItem.class));
+            then(itemEnhancementHistoryRepository).should().save(any(ItemEnhancementHistory.class));
+        }
+
+        @Test
+        @DisplayName("파괴 시 스택에서 아이템 1개만 제거된다")
+        void enhance_destroyed_decreases_only_one_item_from_stack() {
+            // given
+            User user = userOf(1L);
+            Item item = itemOf(
+                    1L,
+                    "wooden_bow",
+                    "나무 활",
+                    ItemType.WEAPON,
+                    ItemGrade.RARE
+            );
+            UserItem userItem = userItemOf(10L, user, item, 6, 2);
+            Wallet wallet = Wallet.builder()
+                    .user(user)
+                    .gold(100)
+                    .gem(0)
+                    .build();
+            EnhancementRule rule = EnhancementRule.builder()
+                    .fromGrade(6)
+                    .toGrade(7)
+                    .successRate(0)
+                    .failRate(100)
+                    .destroyRate(100)
+                    .goldCost(10)
+                    .active(true)
+                    .build();
+
+            given(userItemRepository.findByUserItemIdAndUser_UserIdAndStatusIn(
+                    10L,
+                    1L,
+                    visibleStatuses()
+            )).willReturn(Optional.of(userItem));
+            given(enhancementRuleRepository.findByFromGradeAndActiveTrue(6))
+                    .willReturn(Optional.of(rule));
+            given(walletRepository.findByUser_UserId(1L))
+                    .willReturn(Optional.of(wallet));
+            given(miracleTimeEventRepository.findActiveEvent(any(LocalDateTime.class)))
+                    .willReturn(Optional.empty());
+
+            // when
+            EnhancementResultResponse response = enhancementService.enhance(1L, 10L);
+
+            // then
+            assertThat(response.outcome()).isEqualTo("DESTROYED");
+            assertThat(response.gradeBefore()).isEqualTo(6);
+            assertThat(response.gradeAfter()).isEqualTo(6);
+            assertThat(userItem.getQuantity()).isEqualTo(1);
+            assertThat(userItem.getStatus()).isEqualTo(UserItemStatus.OWNED);
+
+            then(itemEnhancementHistoryRepository).should().save(any(ItemEnhancementHistory.class));
+        }
+
+        @Test
+        @DisplayName("미라클 타임 중 성공하면 강화 등급이 2 상승한다")
+        void enhance_success_during_miracle_time_increases_two_grades() {
+            // given
+            User user = userOf(1L);
+            Item item = itemOf(
+                    1L,
+                    "wooden_bow",
+                    "나무 활",
+                    ItemType.WEAPON,
+                    ItemGrade.COMMON
+            );
+            UserItem userItem = userItemOf(10L, user, item, 3);
+            Wallet wallet = Wallet.builder()
+                    .user(user)
+                    .gold(100)
+                    .gem(0)
+                    .build();
+            EnhancementRule rule = EnhancementRule.builder()
+                    .fromGrade(3)
+                    .toGrade(4)
+                    .successRate(100)
+                    .failRate(0)
+                    .destroyRate(0)
+                    .goldCost(10)
+                    .active(true)
+                    .build();
+            MiracleTimeEvent event = MiracleTimeEvent.builder()
+                    .name("테스트 미라클 타임")
+                    .startAt(LocalDateTime.now().minusHours(1))
+                    .endAt(LocalDateTime.now().plusHours(1))
+                    .bonusGradeStep(2)
+                    .noticeMessage("미라클 타임 진행 중!")
+                    .active(true)
+                    .build();
+
+            given(userItemRepository.findByUserItemIdAndUser_UserIdAndStatusIn(
+                    10L,
+                    1L,
+                    visibleStatuses()
+            )).willReturn(Optional.of(userItem));
+            given(enhancementRuleRepository.findByFromGradeAndActiveTrue(3))
+                    .willReturn(Optional.of(rule));
+            given(walletRepository.findByUser_UserId(1L))
+                    .willReturn(Optional.of(wallet));
+            given(miracleTimeEventRepository.findActiveEvent(any(LocalDateTime.class)))
+                    .willReturn(Optional.of(event));
+
+            // when
+            EnhancementResultResponse response = enhancementService.enhance(1L, 10L);
+
+            // then
+            assertThat(response.outcome()).isEqualTo("SUCCESS");
+            assertThat(response.miracleTimeApplied()).isTrue();
+            assertThat(response.gradeBefore()).isEqualTo(3);
+            assertThat(response.gradeAfter()).isEqualTo(5);
+            assertThat(userItem.getEnhancementGrade()).isEqualTo(5);
+
+            ArgumentCaptor<ItemEnhancementHistory> captor =
+                    ArgumentCaptor.forClass(ItemEnhancementHistory.class);
+            then(itemEnhancementHistoryRepository).should().save(captor.capture());
+            assertThat(captor.getValue().isMiracleApplied()).isTrue();
+        }
     }
 
     private User userOf(Long userId) {
@@ -341,10 +639,20 @@ class EnhancementServiceTest {
             Item item,
             int enhancementGrade
     ) {
+        return userItemOf(userItemId, user, item, enhancementGrade, 1);
+    }
+
+    private UserItem userItemOf(
+            Long userItemId,
+            User user,
+            Item item,
+            int enhancementGrade,
+            int quantity
+    ) {
         UserItem userItem = UserItem.builder()
                 .user(user)
                 .item(item)
-                .quantity(1)
+                .quantity(quantity)
                 .status(UserItemStatus.OWNED)
                 .enhancementGrade(enhancementGrade)
                 .obtainedFrom(UserItemObtainedFrom.PICKUP)
@@ -354,4 +662,9 @@ class EnhancementServiceTest {
 
         return userItem;
     }
+
+    private List<UserItemStatus> visibleStatuses() {
+        return List.of(UserItemStatus.OWNED, UserItemStatus.EQUIPPED);
+    }
+
 }
