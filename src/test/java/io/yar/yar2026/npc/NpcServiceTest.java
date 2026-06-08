@@ -195,15 +195,12 @@ class NpcServiceTest {
             );
 
             // then
-            assertThat(response.npcId()).isEqualTo(1L);
-            assertThat(response.npcItemId()).isEqualTo(100L);
-            assertThat(response.itemId()).isEqualTo(10L);
-            assertThat(response.itemName()).isEqualTo("체력 물약");
-            assertThat(response.quantity()).isEqualTo(2);
-            assertThat(response.goldSpent()).isEqualTo(100);
-            assertThat(response.remainingGold()).isEqualTo(400L);
-            assertThat(response.userItems()).hasSize(1);
-            assertThat(response.userItems().get(0).quantity()).isEqualTo(7);
+            assertThat(response.wallet().gold()).isEqualTo(400L);
+            assertThat(response.wallet().gem()).isZero();
+            assertThat(response.acquiredItem().userItemId()).isEqualTo(200L);
+            assertThat(response.acquiredItem().itemId()).isEqualTo(10L);
+            assertThat(response.acquiredItem().itemName()).isEqualTo("체력 물약");
+            assertThat(response.acquiredItem().quantity()).isEqualTo(7);
             assertThat(wallet.getGold()).isEqualTo(400L);
             assertThat(npcSaleItem.getStockQuantity()).isEqualTo(1);
             assertThat(existingUserItem.getQuantity()).isEqualTo(7);

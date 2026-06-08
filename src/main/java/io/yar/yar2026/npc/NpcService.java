@@ -105,10 +105,7 @@ public class NpcService {
         List<UserItem> userItems = addPurchasedItems(user, npcSaleItem.getItem(), quantity);
 
         return NpcPurchaseResponse.of(
-                npcSaleItem,
-                quantity,
-                goldSpent,
-                wallet.getGold(),
+                wallet,
                 userItems
         );
     }
