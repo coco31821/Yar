@@ -24,6 +24,17 @@ public class FriendController {
 
     private final FriendService friendService;
 
+    @GetMapping
+    public ApiResponse<List<FriendRequestResponse>> getFriends(
+            Authentication authentication
+    ) {
+        Long userId = (Long) authentication.getPrincipal();
+
+        List<FriendRequestResponse> response = friendService.getFriends(userId);
+
+        return ApiResponse.ok(response, null);
+    }
+
     @PostMapping("/requests")
     public ApiResponse<FriendRequestResponse> createFriendRequest(
             Authentication authentication,

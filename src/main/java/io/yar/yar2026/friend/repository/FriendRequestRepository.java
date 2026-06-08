@@ -30,4 +30,16 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, Lo
             Long userId,
             FriendRequestStatus status
     );
+
+    @Query("""
+            select fr
+            from FriendRequest fr
+            where (fr.fromUser.userId = :userId or fr.toUser.userId = :userId)
+              and fr.status = :status
+            order by fr.createdAt desc
+            """)
+    List<FriendRequest> findAllByUserIdAndStatusOrderByCreatedAtDesc(
+            @Param("userId") Long userId,
+            @Param("status") FriendRequestStatus status
+    );
 }

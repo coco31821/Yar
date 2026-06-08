@@ -137,4 +137,15 @@ public class FriendService {
             throw new InvalidFriendRequestException("본인이 보낸 요청만 취소할 수 있습니다.");
         }
     }
+
+    public List<FriendRequestResponse> getFriends(Long userId) {
+        return friendRequestRepository
+                .findAllByUserIdAndStatusOrderByCreatedAtDesc(
+                        userId,
+                        FriendRequestStatus.ACCEPTED
+                )
+                .stream()
+                .map(friendRequest -> FriendRequestResponse.fromFriend(friendRequest, userId))
+                .toList();
+    }
 }

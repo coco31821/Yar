@@ -366,6 +366,50 @@ class FriendServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("친구 목록 조회")
+    class GetFriends {
+
+        @Test
+        @DisplayName("ACCEPTED 상태의 친구 관계를 양방향으로 조회한다")
+        void getFriends_success() {
+            // given
+            Long userId = 1L;
+            User user = userOf(userId, "내유저");
+            User requestedFriend = userOf(2L, "요청받은친구");
+            User receivedFriend = userOf(3L, "요청보낸친구");
+
+            FriendRequest sentAcceptedRequest = friendRequestOf(10L, user, requestedFriend);
+            sentAcceptedRequest.accept();
+
+            FriendRequest receivedAcceptedRequest = friendRequestOf(11L, receivedFriend, user);
+            receivedAcceptedRequest.accept();
+
+            given(friendRequestRepository.findAllByUserIdAndStatusOrderByCreatedAtDesc(
+                    userId,
+                    FriendRequestStatus.ACCEPTED
+            )).willReturn(List.of(sentAcceptedRequest, receivedAcceptedRequest));
+
+            // when
+            List<FriendRequestResponse> response = friendService.getFriends(userId);
+
+            // then
+            assertThat(response).hasSize(2);
+            assertThat(response.get(0).friendRequestId()).isEqualTo(10L);
+            assertThat(response.get(0).status()).isEqualTo(FriendRequestStatus.ACCEPTED);
+            assertThat(response.get(0).nickname()).isEqualTo("요청받은친구");
+            assertThat(response.get(1).friendRequestId()).isEqualTo(11L);
+            assertThat(response.get(1).status()).isEqualTo(FriendRequestStatus.ACCEPTED);
+            assertThat(response.get(1).nickname()).isEqualTo("요청보낸친구");
+
+            then(friendRequestRepository).should()
+                    .findAllByUserIdAndStatusOrderByCreatedAtDesc(
+                            userId,
+                            FriendRequestStatus.ACCEPTED
+                    );
+        }
+    }
+
     private User userOf(Long userId, String nickname) {
         User user = User.builder()
                 .email("user" + userId + "@test.com")
