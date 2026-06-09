@@ -1,0 +1,90 @@
+package io.yar.yar2026.inventory.service;
+
+import io.yar.yar2026.inventory.domain.UserItem;
+import io.yar.yar2026.inventory.domain.UserItemObtainedFrom;
+import io.yar.yar2026.inventory.domain.UserItemStatus;
+import io.yar.yar2026.inventory.dto.ItemPickupRequest;
+import io.yar.yar2026.inventory.dto.UserItemResponse;
+import io.yar.yar2026.inventory.exception.UserItemNotFoundException;
+import io.yar.yar2026.inventory.repository.UserItemRepository;
+import io.yar.yar2026.item.domain.Item;
+import io.yar.yar2026.item.exception.ItemNotFoundException;
+import io.yar.yar2026.item.repository.ItemRepository;
+import io.yar.yar2026.user.domain.User;
+import io.yar.yar2026.user.service.UserService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class InventoryService {
+
+    private final UserService userService;
+    private final ItemRepository itemRepository;
+    private final UserItemRepository userItemRepository;
+
+    // 아이템 획득
+    @Transactional
+    public UserItemResponse pickup(Long userId, ItemPickupRequest request) {
+        User user = userService.requireExists(userId);
+
+        Item item = itemRepository.findById(request.itemId())
+                .orElseThrow(ItemNotFoundException::new);
+
+        UserItem userItem = userItemRepository
+                .findByUser_UserIdAndItem_ItemIdAndEnhancementGradeAndStatus(
+                        userId,
+                        request.itemId(),
+                        0,
+                        UserItemStatus.OWNED
+                )
+                .map(existingUserItem -> {
+                    existingUserItem.increaseQuantity(request.quantity());
+                    return existingUserItem;
+                })
+                .orElseGet(() -> userItemRepository.save(
+                        UserItem.builder()
+                                .user(user)
+                                .item(item)
+                                .quantity(request.quantity())
+                                .status(UserItemStatus.OWNED)
+                                .enhancementGrade(0)
+                                .obtainedFrom(UserItemObtainedFrom.PICKUP)
+                                .build()
+                ));
+
+        return UserItemResponse.from(userItem);
+    }
+
+    // 유저 인벤토리 조회
+    public List<UserItemResponse> getInventory(Long userId) {
+        userService.requireExists(userId);
+
+        return userItemRepository.findAllByUser_UserIdAndStatusIn(
+                        userId,
+                        List.of(UserItemStatus.OWNED, UserItemStatus.EQUIPPED)
+                )
+                .stream()
+                .map(UserItemResponse::from)
+                .toList();
+    }
+
+    // 아이템 버리기
+    @Transactional
+    public void discard(Long userId, Long userItemId, int quantity) {
+        UserItem userItem = userItemRepository
+                .findByUserItemIdAndUser_UserIdAndStatusIn(
+                        userItemId,
+                        userId,
+                        List.of(UserItemStatus.OWNED, UserItemStatus.EQUIPPED)
+                )
+                .orElseThrow(UserItemNotFoundException::new);
+
+        userItem.discardQuantity(quantity);
+    }
+
+}
